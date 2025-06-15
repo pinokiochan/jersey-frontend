@@ -56,7 +56,7 @@ export default function About() {
             {
               id: 1,
               name: "Ayan",
-              role: "Co-Founder",
+              role: "Lead Developer & Co-Founder",
               image: "https://ui-avatars.com/api/?name=Ayan&background=dc2626&color=fff",
               description: "Специализируется на создании интуитивных мобильных интерфейсов и архитектуре приложений",
               email: "ayan@12jerseys.kz",
@@ -65,7 +65,7 @@ export default function About() {
             {
               id: 2,
               name: "Bikosh",
-              role: "Frontend Developer",
+              role: "Senior Developer & Technical Lead",
               image: "https://ui-avatars.com/api/?name=Bikosh&background=dc2626&color=fff",
               description: "Разрабатывает мобильные приложения для лучшего пользовательского опыта",
               email: "bikosh@12jerseys.kz",
@@ -74,16 +74,16 @@ export default function About() {
             {
               id: 3,
               name: "Bakha",
-              role: "Backend Developer",
+              role: "Performance Engineer",
               image: "https://ui-avatars.com/api/?name=Bakha&background=dc2626&color=fff",
-              description: "Аружаннын жигиты",
+              description: "Эксперт по оптимизации производительности мобильных приложений и системной архитектуре",
               email: "bakha@12jerseys.kz",
               linkedin: "#",
             },
             {
               id: 4,
               name: "Berdibek",
-              role: "bertram",
+              role: "Full-Stack Developer",
               image: "https://ui-avatars.com/api/?name=Berdibek&background=dc2626&color=fff",
               description: "Специализируется на кроссплатформенной разработке и интеграции систем",
               email: "berdibek@12jerseys.kz",
@@ -125,9 +125,9 @@ export default function About() {
             {stats.map((stat, index) => (
               <div key={index} className="text-center">
                 <div className="w-16 h-16 bg-red-600/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <stat.icon className="text-red-400" size={24} />
+                  <stat.icon className="text-red-600" size={24} />
                 </div>
-                <div className="text-3xl font-black text-red-400 mb-2">{stat.value}</div>
+                <div className="text-3xl font-black text-red-600 mb-2">{stat.value}</div>
                 <div className="text-gray-400 text-sm">{stat.label}</div>
               </div>
             ))}
