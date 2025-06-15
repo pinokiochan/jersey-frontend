@@ -1,3 +1,4 @@
+import ScrollToTop from "./components/ScrollToTop"
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom"
 import { AuthProvider } from "./context/AuthContext"
 import { CartProvider } from "./context/CartContext"
@@ -19,24 +20,25 @@ export default function App() {
       <AuthProvider>
         <CartProvider>
           <Router>
-            <div className="min-h-screen bg-white flex flex-col">
-              <Header />
-              <main className="flex-1">
-                <Routes>
-                  <Route path="/" element={<Home />} />
-                  <Route path="/catalog" element={<Catalog />} />
-                  <Route path="/about" element={<About />} />
-                  <Route path="/login" element={<Login />} />
-                  <Route path="/register" element={<Register />} />
-                  <Route path="/cart" element={<Cart />} />
-                  <Route
-                    path="/profile"
-                    element={
-                      <ProtectedRoute>
-                        <Profile />
-                      </ProtectedRoute>
-                    }
-                  />
+            <ScrollToTop />
+                <div className="min-h-screen bg-white flex flex-col">
+                <Header />
+                <main className="flex-1">
+                    <Routes>
+                    <Route path="/" element={<Home />} />
+                    <Route path="/catalog" element={<Catalog />} />
+                    <Route path="/about" element={<About />} />
+                    <Route path="/login" element={<Login />} />
+                    <Route path="/register" element={<Register />} />
+                    <Route path="/cart" element={<Cart />} />
+                    <Route
+                        path="/profile"
+                        element={
+                        <ProtectedRoute>
+                            <Profile />
+                        </ProtectedRoute>
+                        }
+                    />
                 </Routes>
               </main>
               <Footer />
