@@ -19,8 +19,8 @@ export default function Header() {
   const userMenuRef = useRef(null)
   const searchRef = useRef(null)
 
+  // Убираем "Главная" из навигации - теперь только лого ведет на главную
   const navigation = [
-    { name: "Главная", href: "/", ariaLabel: "Перейти на главную страницу" },
     { name: "Каталог", href: "/catalog", ariaLabel: "Просмотреть каталог товаров" },
     { name: "О нас", href: "/about", ariaLabel: "Узнать больше о компании" },
   ]
@@ -62,7 +62,6 @@ export default function Header() {
     setIsMobileMenuOpen(false)
   }, [location.pathname])
 
-  // Add this after the existing useEffect hooks
   useEffect(() => {
     console.log("Header: Cart items count:", getCartItemsCount())
   }, [getCartItemsCount()])
@@ -71,12 +70,20 @@ export default function Header() {
     <header className="bg-white shadow-sm border-b border-gray-100 sticky top-0 z-50 rounded-b-2xl">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          {/* Logo */}
-          <Link to="/" className="flex items-center space-x-2 group" aria-label="Jerseys - Главная страница">
-            <div className="w-10 h-10 bg-red-600 rounded-xl flex items-center justify-center group-hover:bg-red-700 transition-colors">
-              <span className="text-white font-black text-lg">12</span>
+          {/* Logo - стилизованный как в футере */}
+          <Link to="/" className="flex items-center space-x-4 group" aria-label="12 Jerseys - Главная страница">
+            <div className="relative">
+              <span className="text-4xl font-black text-gray-900 tracking-tighter group-hover:text-red-600 transition-colors">
+                12
+              </span>
+              <div className="absolute -bottom-1 left-0 w-full h-1 bg-red-600 scale-x-0 group-hover:scale-x-100 transition-transform duration-300 rounded-full"></div>
             </div>
-            <span className="text-xl font-black text-gray-900 group-hover:text-red-600 transition-colors">JERSEYS</span>
+            <div>
+              <div className="text-sm font-bold text-gray-600 uppercase tracking-wider group-hover:text-red-600 transition-colors">
+                Jerseys
+              </div>
+              <div className="text-xs text-gray-400 -mt-0.5">The 12th Man</div>
+            </div>
           </Link>
 
           {/* Desktop Navigation */}
