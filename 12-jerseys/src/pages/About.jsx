@@ -58,7 +58,7 @@ export default function About() {
               name: "Ayan",
               role: "Co-Founder",
               image: "https://ui-avatars.com/api/?name=Ayan&background=dc2626&color=fff",
-              description: "Специализируется на создании интуитивных мобильных интерфейсов и архитектуре приложений",
+              description: "Женгенын жигиты",
               email: "ayan@12jerseys.kz",
               linkedin: "#",
             },
