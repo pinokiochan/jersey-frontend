@@ -56,7 +56,7 @@ export default function About() {
             {
               id: 1,
               name: "Ayan",
-              role: "Co-Founder",
+              role: "Founder",
               image: "https://ui-avatars.com/api/?name=Ayan&background=dc2626&color=fff",
               description: "Женгенын жигиты",
               email: "ayan@12jerseys.kz",
@@ -114,7 +114,7 @@ export default function About() {
 
         <div className="relative z-10 max-w-4xl mx-auto text-center">
           <h1 className="text-5xl md:text-7xl font-black mb-6 leading-tight">
-            О <span className="text-red-600">12</span>
+            <span className="text-red-600">12</span>
           </h1>
           <p className="text-xl md:text-2xl text-gray-300 mb-8 leading-relaxed">
             Мы не просто продаём джерси — мы создаём культуру, объединяющую футбол и стиль
@@ -180,7 +180,7 @@ export default function About() {
                 <div className="relative">
                   <div className="bg-gray-100 rounded-3xl p-8 transform rotate-3 hover:rotate-0 transition-transform duration-500">
                     <img
-                      src="/placeholder.svg?height=400&width=400"
+                      src="/assets/fam.png?height=400&width=400"
                       alt="История бренда"
                       className="w-full h-80 object-cover rounded-2xl"
                     />

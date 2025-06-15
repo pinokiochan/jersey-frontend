@@ -40,23 +40,23 @@ export default function Home() {
 
   const collections = [
     {
-      title: "Классика",
+      title: "Classic",
       description: "Переосмысленные легендарные джерси",
-      image: "/placeholder.svg?height=300&width=300",
+      image: "/assets/manu.jpg?height=300&width=300",
       count: "12+ моделей",
       price: "от ₸18,000",
     },
     {
-      title: "Лимитед",
+      title: "Limited",
       description: "Ограниченные коллекции в малых тиражах",
-      image: "/placeholder.svg?height=300&width=300",
+      image: "/assets/japan.jpg?height=300&width=400",
       count: "3 модели",
       price: "от ₸25,000",
     },
     {
-      title: "Винтаж",
+      title: "Vintage",
       description: "Ретро джерси в современной интерпретации",
-      image: "/placeholder.svg?height=300&width=300",
+      image: "/assets/retroars.webp?height=300&width=300",
       count: "8+ моделей",
       price: "от ₸22,000",
     },
@@ -111,7 +111,7 @@ export default function Home() {
         <div className="relative z-10 max-w-5xl mx-auto">
           {isAuthenticated && (
             <div className="mb-6 animate-fade-in">
-              <span className="text-red-600 text-lg font-bold tracking-wider">Добро пожаловать, {user.name}!</span>
+              <span className="text-white-600 text-lg font-bold tracking-wider">Добро пожаловать, {user.name}!</span>
             </div>
           )}
 
@@ -224,7 +224,7 @@ export default function Home() {
               <div className="bg-white rounded-3xl shadow-2xl p-8 transform rotate-3 hover:rotate-0 transition-transform duration-500">
                 <div className="w-full h-80 bg-gray-200 rounded-xl mb-6 overflow-hidden">
                   <img
-                    src="/placeholder.svg?height=320&width=320"
+                    src="assets/12.png"
                     alt="Футболка 12"
                     className="w-full h-full object-cover object-center hover:scale-105 transition-transform duration-300"
                   />
