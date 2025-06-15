@@ -1,23 +1,50 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Search, Grid, List, SlidersHorizontal } from "lucide-react"
+import { useSearchParams } from "react-router-dom"
+import { Search, Grid, List, SlidersHorizontal, RefreshCw } from "lucide-react"
 import ProductCard from "../components/ProductCard"
 import LoadingSpinner from "../components/LoadingSpinner"
+// Remove this import:
+// import { useProducts } from "../hooks/useProducts"
 
 export default function Catalog() {
-  const [products, setProducts] = useState([])
-  const [filteredProducts, setFilteredProducts] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [searchParams, setSearchParams] = useSearchParams()
   const [viewMode, setViewMode] = useState("grid")
-  const [searchQuery, setSearchQuery] = useState("")
-  const [selectedTeam, setSelectedTeam] = useState("")
-  const [selectedColor, setSelectedColor] = useState("")
-  const [priceRange, setPriceRange] = useState([0, 50000])
-  const [sortBy, setSortBy] = useState("name")
   const [showFilters, setShowFilters] = useState(false)
 
-  // Mock products data
+  // Filter states
+  const [searchQuery, setSearchQuery] = useState(searchParams.get("search") || "")
+  const [selectedTeam, setSelectedTeam] = useState(searchParams.get("team") || "")
+  const [selectedColor, setSelectedColor] = useState(searchParams.get("color") || "")
+  const [selectedCategory, setSelectedCategory] = useState(searchParams.get("category") || "")
+  const [priceRange, setPriceRange] = useState([
+    Number.parseInt(searchParams.get("minPrice")) || 0,
+    Number.parseInt(searchParams.get("maxPrice")) || 50000,
+  ])
+  const [sortBy, setSortBy] = useState(searchParams.get("sortBy") || "name")
+
+  // Add these state variables after the existing useState declarations:
+  const [products, setProducts] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [total, setTotal] = useState(0)
+
+  // Get initial filters from URL
+  const getFiltersFromState = () => ({
+    search: searchQuery,
+    team: selectedTeam,
+    color: selectedColor,
+    category: selectedCategory,
+    minPrice: priceRange[0],
+    maxPrice: priceRange[1],
+    sortBy: sortBy,
+  })
+
+  // Remove the useProducts hook usage
+  // const { products, loading, error, total, refetch } = useProducts(getFiltersFromState())
+
+  // Add this mock data and filtering logic after the state declarations:
   const mockProducts = [
     {
       id: 1,
@@ -26,8 +53,11 @@ export default function Catalog() {
       color: "Красный",
       price: 25000,
       image: "/placeholder.svg?height=300&width=300",
-      description: "Классическое ретро джерси Manchester United в современной интерпретации",
+      description: "Классическое ретро джерси Manchester United в современной интерпретации с премиальными материалами",
       stock: 15,
+      category: "retro",
+      sizes: ["XS", "S", "M", "L", "XL", "XXL"],
+      featured: true,
     },
     {
       id: 2,
@@ -36,8 +66,11 @@ export default function Catalog() {
       color: "Красный",
       price: 22000,
       image: "/placeholder.svg?height=300&width=300",
-      description: "Винтажное джерси Arsenal с уникальным дизайном",
+      description: "Винтажное джерси Arsenal с уникальным дизайном и аутентичными деталями",
       stock: 8,
+      category: "vintage",
+      sizes: ["S", "M", "L", "XL"],
+      featured: true,
     },
     {
       id: 3,
@@ -46,8 +79,11 @@ export default function Catalog() {
       color: "Красный",
       price: 23000,
       image: "/placeholder.svg?height=300&width=300",
-      description: "Классическое джерси Liverpool для истинных фанатов",
+      description: "Классическое джерси Liverpool для истинных фанатов с современным кроем",
       stock: 12,
+      category: "classic",
+      sizes: ["XS", "S", "M", "L", "XL"],
+      featured: false,
     },
     {
       id: 4,
@@ -56,8 +92,11 @@ export default function Catalog() {
       color: "Синий",
       price: 24000,
       image: "/placeholder.svg?height=300&width=300",
-      description: "Современное джерси Chelsea с инновационным дизайном",
+      description: "Современное джерси Chelsea с инновационным дизайном и технологичными материалами",
       stock: 20,
+      category: "modern",
+      sizes: ["S", "M", "L", "XL", "XXL"],
+      featured: true,
     },
     {
       id: 5,
@@ -66,8 +105,11 @@ export default function Catalog() {
       color: "Синий",
       price: 26000,
       image: "/placeholder.svg?height=300&width=300",
-      description: "Наследие Barcelona в современном исполнении",
+      description: "Наследие Barcelona в современном исполнении с традиционными цветами клуба",
       stock: 5,
+      category: "heritage",
+      sizes: ["M", "L", "XL"],
+      featured: true,
     },
     {
       id: 6,
@@ -76,83 +118,209 @@ export default function Catalog() {
       color: "Белый",
       price: 28000,
       image: "/placeholder.svg?height=300&width=300",
-      description: "Элитное джерси Real Madrid для особых случаев",
+      description: "Элитное джерси Real Madrid для особых случаев с премиальной отделкой",
       stock: 0,
+      category: "elite",
+      sizes: ["S", "M", "L", "XL"],
+      featured: false,
+    },
+    {
+      id: 7,
+      name: "PSG Limited Edition",
+      team: "PSG",
+      color: "Синий",
+      price: 30000,
+      image: "/placeholder.svg?height=300&width=300",
+      description: "Лимитированная коллекция PSG с эксклюзивным дизайном",
+      stock: 3,
+      category: "limited",
+      sizes: ["M", "L", "XL"],
+      featured: true,
+    },
+    {
+      id: 8,
+      name: "Bayern Munich Classic",
+      team: "Bayern Munich",
+      color: "Красный",
+      price: 24500,
+      image: "/placeholder.svg?height=300&width=300",
+      description: "Классическое джерси Bayern Munich с традиционным баварским дизайном",
+      stock: 18,
+      category: "classic",
+      sizes: ["XS", "S", "M", "L", "XL", "XXL"],
+      featured: false,
     },
   ]
 
-  useEffect(() => {
-    // Simulate API call
-    const loadProducts = async () => {
-      setLoading(true)
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-      setProducts(mockProducts)
-      setFilteredProducts(mockProducts)
+  // Replace the useProducts hook usage with this function:
+  const fetchProducts = async (filters = {}) => {
+    setLoading(true)
+    setError(null)
+
+    try {
+      // Simulate API call
+      await new Promise((resolve) => setTimeout(resolve, 500))
+
+      let filtered = [...mockProducts]
+
+      // Apply filters
+      if (filters.search) {
+        const search = filters.search.toLowerCase()
+        filtered = filtered.filter(
+          (product) =>
+            product.name.toLowerCase().includes(search) ||
+            product.team.toLowerCase().includes(search) ||
+            product.description.toLowerCase().includes(search),
+        )
+      }
+
+      if (filters.team) {
+        filtered = filtered.filter((product) => product.team === filters.team)
+      }
+
+      if (filters.color) {
+        filtered = filtered.filter((product) => product.color === filters.color)
+      }
+
+      if (filters.category) {
+        filtered = filtered.filter((product) => product.category === filters.category)
+      }
+
+      if (filters.minPrice) {
+        filtered = filtered.filter((product) => product.price >= Number.parseInt(filters.minPrice))
+      }
+
+      if (filters.maxPrice) {
+        filtered = filtered.filter((product) => product.price <= Number.parseInt(filters.maxPrice))
+      }
+
+      // Apply sorting
+      if (filters.sortBy) {
+        switch (filters.sortBy) {
+          case "price-low":
+            filtered.sort((a, b) => a.price - b.price)
+            break
+          case "price-high":
+            filtered.sort((a, b) => b.price - a.price)
+            break
+          case "name":
+            filtered.sort((a, b) => a.name.localeCompare(b.name))
+            break
+          case "stock":
+            filtered.sort((a, b) => b.stock - a.stock)
+            break
+          default:
+            break
+        }
+      }
+
+      setProducts(filtered)
+      setTotal(filtered.length)
+    } catch (err) {
+      setError(err.message)
+    } finally {
       setLoading(false)
     }
+  }
 
-    loadProducts()
-  }, [])
+  // Available filter options (will be populated from API in real implementation)
+  const teams = [
+    "Manchester United",
+    "Arsenal",
+    "Liverpool",
+    "Chelsea",
+    "Barcelona",
+    "Real Madrid",
+    "PSG",
+    "Bayern Munich",
+  ]
+  const colors = ["Красный", "Синий", "Белый", "Зеленый", "Черный"]
+  const categories = ["retro", "vintage", "classic", "modern", "heritage", "elite", "limited"]
 
-  useEffect(() => {
-    let filtered = [...products]
-
-    // Search filter
-    if (searchQuery) {
-      filtered = filtered.filter(
-        (product) =>
-          product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          product.team.toLowerCase().includes(searchQuery.toLowerCase()),
-      )
-    }
-
-    // Team filter
-    if (selectedTeam) {
-      filtered = filtered.filter((product) => product.team === selectedTeam)
-    }
-
-    // Color filter
-    if (selectedColor) {
-      filtered = filtered.filter((product) => product.color === selectedColor)
-    }
-
-    // Price filter
-    filtered = filtered.filter((product) => product.price >= priceRange[0] && product.price <= priceRange[1])
-
-    // Sort
-    filtered.sort((a, b) => {
-      switch (sortBy) {
-        case "price-low":
-          return a.price - b.price
-        case "price-high":
-          return b.price - a.price
-        case "name":
-          return a.name.localeCompare(b.name)
-        default:
-          return 0
+  // Update URL params when filters change
+  const updateUrlParams = (newFilters) => {
+    const params = new URLSearchParams()
+    Object.entries(newFilters).forEach(([key, value]) => {
+      if (value && value !== "" && value !== 0) {
+        params.set(key, value.toString())
       }
     })
+    setSearchParams(params)
+  }
 
-    setFilteredProducts(filtered)
-  }, [products, searchQuery, selectedTeam, selectedColor, priceRange, sortBy])
+  // Handle filter changes
+  const handleFilterChange = (newFilters) => {
+    const filters = { ...getFiltersFromState(), ...newFilters }
+    updateUrlParams(filters)
+    fetchProducts(filters)
+  }
 
-  const teams = [...new Set(products.map((p) => p.team))]
-  const colors = [...new Set(products.map((p) => p.color))]
+  const handleSearchChange = (value) => {
+    setSearchQuery(value)
+    handleFilterChange({ search: value })
+  }
+
+  const handleTeamChange = (value) => {
+    setSelectedTeam(value)
+    handleFilterChange({ team: value })
+  }
+
+  const handleColorChange = (value) => {
+    setSelectedColor(value)
+    handleFilterChange({ color: value })
+  }
+
+  const handleCategoryChange = (value) => {
+    setSelectedCategory(value)
+    handleFilterChange({ category: value })
+  }
+
+  const handlePriceRangeChange = (newRange) => {
+    setPriceRange(newRange)
+    handleFilterChange({ minPrice: newRange[0], maxPrice: newRange[1] })
+  }
+
+  const handleSortChange = (value) => {
+    setSortBy(value)
+    handleFilterChange({ sortBy: value })
+  }
 
   const clearFilters = () => {
     setSearchQuery("")
     setSelectedTeam("")
     setSelectedColor("")
+    setSelectedCategory("")
     setPriceRange([0, 50000])
     setSortBy("name")
+    setSearchParams(new URLSearchParams())
+    fetchProducts({})
   }
 
-  if (loading) {
+  const handleRefresh = () => {
+    fetchProducts(getFiltersFromState())
+  }
+
+  // Initialize filters from URL on component mount
+  useEffect(() => {
+    const urlFilters = getFiltersFromState()
+    fetchProducts(urlFilters)
+  }, [])
+
+  if (error) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <LoadingSpinner size="lg" />
-          <p className="mt-4 text-gray-600">Загружаем каталог...</p>
+          <div className="w-24 h-24 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <RefreshCw className="text-red-600" size={32} />
+          </div>
+          <h3 className="text-xl font-bold text-gray-900 mb-2">Ошибка загрузки</h3>
+          <p className="text-gray-600 mb-6">{error}</p>
+          <button
+            onClick={handleRefresh}
+            className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-xl font-semibold transition-colors"
+          >
+            Попробовать снова
+          </button>
         </div>
       </div>
     )
@@ -163,8 +331,20 @@ export default function Catalog() {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-black text-gray-900 mb-4">Каталог</h1>
-          <p className="text-gray-600">Найди своё идеальное джерси из нашей коллекции</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-4xl font-black text-gray-900 mb-4">Каталог</h1>
+              <p className="text-gray-600">Найди своё идеальное джерси из нашей коллекции</p>
+            </div>
+            <button
+              onClick={handleRefresh}
+              disabled={loading}
+              className="flex items-center space-x-2 bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
+            >
+              <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
+              <span>Обновить</span>
+            </button>
+          </div>
         </div>
 
         {/* Search and Controls */}
@@ -176,7 +356,7 @@ export default function Catalog() {
               <input
                 type="text"
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => handleSearchChange(e.target.value)}
                 placeholder="Поиск по названию или команде..."
                 className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-transparent"
               />
@@ -187,12 +367,13 @@ export default function Catalog() {
               {/* Sort */}
               <select
                 value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
+                onChange={(e) => handleSortChange(e.target.value)}
                 className="px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-600"
               >
                 <option value="name">По названию</option>
                 <option value="price-low">Цена: по возрастанию</option>
                 <option value="price-high">Цена: по убыванию</option>
+                <option value="stock">По наличию</option>
               </select>
 
               {/* View Mode */}
@@ -231,13 +412,13 @@ export default function Catalog() {
           {/* Filters Panel */}
           {showFilters && (
             <div className="mt-6 pt-6 border-t border-gray-200">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 {/* Team Filter */}
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Команда</label>
                   <select
                     value={selectedTeam}
-                    onChange={(e) => setSelectedTeam(e.target.value)}
+                    onChange={(e) => handleTeamChange(e.target.value)}
                     className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600"
                   >
                     <option value="">Все команды</option>
@@ -254,13 +435,30 @@ export default function Catalog() {
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Цвет</label>
                   <select
                     value={selectedColor}
-                    onChange={(e) => setSelectedColor(e.target.value)}
+                    onChange={(e) => handleColorChange(e.target.value)}
                     className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600"
                   >
                     <option value="">Все цвета</option>
                     {colors.map((color) => (
                       <option key={color} value={color}>
                         {color}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Category Filter */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Категория</label>
+                  <select
+                    value={selectedCategory}
+                    onChange={(e) => handleCategoryChange(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600"
+                  >
+                    <option value="">Все категории</option>
+                    {categories.map((category) => (
+                      <option key={category} value={category}>
+                        {category.charAt(0).toUpperCase() + category.slice(1)}
                       </option>
                     ))}
                   </select>
@@ -278,7 +476,7 @@ export default function Catalog() {
                       max="50000"
                       step="1000"
                       value={priceRange[0]}
-                      onChange={(e) => setPriceRange([Number.parseInt(e.target.value), priceRange[1]])}
+                      onChange={(e) => handlePriceRangeChange([Number.parseInt(e.target.value), priceRange[1]])}
                       className="flex-1"
                     />
                     <input
@@ -287,7 +485,7 @@ export default function Catalog() {
                       max="50000"
                       step="1000"
                       value={priceRange[1]}
-                      onChange={(e) => setPriceRange([priceRange[0], Number.parseInt(e.target.value)])}
+                      onChange={(e) => handlePriceRangeChange([priceRange[0], Number.parseInt(e.target.value)])}
                       className="flex-1"
                     />
                   </div>
@@ -303,38 +501,50 @@ export default function Catalog() {
           )}
         </div>
 
-        {/* Results */}
-        <div className="mb-6">
-          <p className="text-gray-600">
-            Найдено {filteredProducts.length} из {products.length} товаров
-          </p>
-        </div>
-
-        {/* Products Grid */}
-        {filteredProducts.length === 0 ? (
-          <div className="text-center py-16">
-            <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
-              <Search className="text-gray-400" size={32} />
+        {/* Loading State */}
+        {loading && (
+          <div className="flex items-center justify-center py-16">
+            <div className="text-center">
+              <LoadingSpinner size="lg" />
+              <p className="mt-4 text-gray-600">Загружаем товары...</p>
             </div>
-            <h3 className="text-xl font-bold text-gray-900 mb-2">Товары не найдены</h3>
-            <p className="text-gray-600 mb-6">Попробуйте изменить параметры поиска или фильтры</p>
-            <button
-              onClick={clearFilters}
-              className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-xl font-semibold transition-colors"
-            >
-              Сбросить фильтры
-            </button>
           </div>
-        ) : (
-          <div
-            className={`grid gap-6 ${
-              viewMode === "grid" ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" : "grid-cols-1"
-            }`}
-          >
-            {filteredProducts.map((product) => (
-              <ProductCard key={product.id} product={product} viewMode={viewMode} />
-            ))}
-          </div>
+        )}
+
+        {/* Results */}
+        {!loading && (
+          <>
+            <div className="mb-6">
+              <p className="text-gray-600">Найдено {total} товаров</p>
+            </div>
+
+            {/* Products Grid */}
+            {products.length === 0 ? (
+              <div className="text-center py-16">
+                <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <Search className="text-gray-400" size={32} />
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">Товары не найдены</h3>
+                <p className="text-gray-600 mb-6">Попробуйте изменить параметры поиска или фильтры</p>
+                <button
+                  onClick={clearFilters}
+                  className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-xl font-semibold transition-colors"
+                >
+                  Сбросить фильтры
+                </button>
+              </div>
+            ) : (
+              <div
+                className={`grid gap-6 ${
+                  viewMode === "grid" ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" : "grid-cols-1"
+                }`}
+              >
+                {products.map((product) => (
+                  <ProductCard key={product.id} product={product} viewMode={viewMode} />
+                ))}
+              </div>
+            )}
+          </>
         )}
       </div>
     </main>

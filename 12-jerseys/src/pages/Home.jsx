@@ -111,12 +111,12 @@ export default function Home() {
         <div className="relative z-10 max-w-5xl mx-auto">
           {isAuthenticated && (
             <div className="mb-6 animate-fade-in">
-              <span className="text-red-400 text-lg font-bold tracking-wider">Добро пожаловать, {user.name}!</span>
+              <span className="text-red-600 text-lg font-bold tracking-wider">Добро пожаловать, {user.name}!</span>
             </div>
           )}
 
           <div className="mb-6">
-            <span className="text-red-400 text-lg font-bold tracking-wider uppercase animate-fade-in-up">
+            <span className="text-red-600 text-lg font-bold tracking-wider uppercase animate-fade-in-up">
               The 12th Man Collection
             </span>
           </div>
@@ -152,19 +152,19 @@ export default function Home() {
           {/* Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mt-16 animate-fade-in-up delay-800">
             <div className="text-center">
-              <div className="text-3xl font-black text-red-400 mb-2">5000+</div>
+              <div className="text-3xl font-black text-red-600 mb-2">5000+</div>
               <div className="text-gray-400">Довольных клиентов</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-black text-red-400 mb-2">50+</div>
+              <div className="text-3xl font-black text-red-600 mb-2">50+</div>
               <div className="text-gray-400">Уникальных дизайнов</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-black text-red-400 mb-2">99%</div>
+              <div className="text-3xl font-black text-red-600 mb-2">99%</div>
               <div className="text-gray-400">Положительных отзывов</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-black text-red-400 mb-2">24/7</div>
+              <div className="text-3xl font-black text-red-600 mb-2">24/7</div>
               <div className="text-gray-400">Поддержка клиентов</div>
             </div>
           </div>
@@ -295,7 +295,7 @@ export default function Home() {
       <section className="px-6 lg:px-12 py-20 bg-gray-900 text-white">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <span className="text-red-400 text-sm font-bold tracking-wider uppercase">Коллекции</span>
+            <span className="text-red-600 text-sm font-bold tracking-wider uppercase">Коллекции</span>
             <h2 className="text-4xl font-black mt-4 mb-6">Найди свой стиль</h2>
             <p className="text-gray-300 text-lg max-w-2xl mx-auto">
               От классических переосмыслений до лимитированных релизов

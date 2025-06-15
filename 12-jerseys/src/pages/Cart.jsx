@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Link } from "react-router-dom"
 import { Minus, Plus, Trash2, ShoppingBag, ArrowLeft, CreditCard } from "lucide-react"
 import { useCart } from "../context/CartContext"
@@ -10,6 +10,11 @@ export default function Cart() {
   const { cartItems, updateQuantity, removeFromCart, getCartTotal, clearCart } = useCart()
   const { isAuthenticated } = useAuth()
   const [isCheckingOut, setIsCheckingOut] = useState(false)
+
+  // Debug logging
+  useEffect(() => {
+    console.log("Cart component rendered with items:", cartItems)
+  }, [cartItems])
 
   const handleQuantityChange = (cartId, newQuantity) => {
     updateQuantity(cartId, newQuantity)
@@ -80,60 +85,68 @@ export default function Cart() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Cart Items */}
           <div className="lg:col-span-2 space-y-4">
-            {cartItems.map((item) => (
-              <div key={item.cartId} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-                <div className="flex items-center space-x-4">
-                  {/* Product Image */}
-                  <div className="w-24 h-24 bg-gray-100 rounded-xl overflow-hidden flex-shrink-0">
-                    <img
-                      src={item.image || "/placeholder.svg?height=100&width=100"}
-                      alt={item.name}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
+            {cartItems.map((item) => {
+              // Add validation for required fields
+              if (!item.cartId || !item.name || !item.price) {
+                console.warn("Invalid cart item:", item)
+                return null
+              }
 
-                  {/* Product Info */}
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-lg font-bold text-gray-900 mb-1">{item.name}</h3>
-                    <div className="flex items-center space-x-4 text-sm text-gray-600 mb-2">
-                      <span>{item.team}</span>
-                      <span>•</span>
-                      <span>{item.color}</span>
-                      <span>•</span>
-                      <span>Размер: {item.selectedSize}</span>
+              return (
+                <div key={item.cartId} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                  <div className="flex items-center space-x-4">
+                    {/* Product Image */}
+                    <div className="w-24 h-24 bg-gray-100 rounded-xl overflow-hidden flex-shrink-0">
+                      <img
+                        src={item.image || "/placeholder.svg?height=100&width=100"}
+                        alt={item.name}
+                        className="w-full h-full object-cover"
+                      />
                     </div>
-                    <div className="text-xl font-black text-red-600">₸{Number(item.price).toLocaleString()}</div>
-                  </div>
 
-                  {/* Quantity Controls */}
-                  <div className="flex items-center space-x-3">
+                    {/* Product Info */}
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-lg font-bold text-gray-900 mb-1">{item.name}</h3>
+                      <div className="flex items-center space-x-4 text-sm text-gray-600 mb-2">
+                        <span>{item.team}</span>
+                        <span>•</span>
+                        <span>{item.color}</span>
+                        <span>•</span>
+                        <span>Размер: {item.selectedSize}</span>
+                      </div>
+                      <div className="text-xl font-black text-red-600">₸{Number(item.price).toLocaleString()}</div>
+                    </div>
+
+                    {/* Quantity Controls */}
+                    <div className="flex items-center space-x-3">
+                      <button
+                        onClick={() => handleQuantityChange(item.cartId, item.quantity - 1)}
+                        className="w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-lg flex items-center justify-center transition-colors"
+                      >
+                        <Minus size={16} />
+                      </button>
+
+                      <span className="w-12 text-center font-bold text-lg">{item.quantity}</span>
+
+                      <button
+                        onClick={() => handleQuantityChange(item.cartId, item.quantity + 1)}
+                        className="w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-lg flex items-center justify-center transition-colors"
+                      >
+                        <Plus size={16} />
+                      </button>
+                    </div>
+
+                    {/* Remove Button */}
                     <button
-                      onClick={() => handleQuantityChange(item.cartId, item.quantity - 1)}
-                      className="w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-lg flex items-center justify-center transition-colors"
+                      onClick={() => handleRemoveItem(item.cartId)}
+                      className="p-2 text-gray-400 hover:text-red-600 transition-colors"
                     >
-                      <Minus size={16} />
-                    </button>
-
-                    <span className="w-12 text-center font-bold text-lg">{item.quantity}</span>
-
-                    <button
-                      onClick={() => handleQuantityChange(item.cartId, item.quantity + 1)}
-                      className="w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-lg flex items-center justify-center transition-colors"
-                    >
-                      <Plus size={16} />
+                      <Trash2 size={20} />
                     </button>
                   </div>
-
-                  {/* Remove Button */}
-                  <button
-                    onClick={() => handleRemoveItem(item.cartId)}
-                    className="p-2 text-gray-400 hover:text-red-600 transition-colors"
-                  >
-                    <Trash2 size={20} />
-                  </button>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
 
           {/* Order Summary */}
