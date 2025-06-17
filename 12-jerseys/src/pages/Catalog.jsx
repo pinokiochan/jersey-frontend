@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useSearchParams } from "react-router-dom"
-import { Search, Grid, List, SlidersHorizontal } from "lucide-react"
+import { Search, Grid, List, SlidersHorizontal, ChevronLeft, ChevronRight } from "lucide-react"
 import ProductCard from "../components/ProductCard"
 import LoadingSpinner from "../components/LoadingSpinner"
 
@@ -13,6 +13,10 @@ export default function Catalog() {
   const [loading, setLoading] = useState(true)
   const [viewMode, setViewMode] = useState("grid")
   const [showFilters, setShowFilters] = useState(false)
+
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 6
 
   // Filter states
   const [searchQuery, setSearchQuery] = useState(searchParams.get("search") || "")
@@ -421,6 +425,12 @@ export default function Catalog() {
   const colors = [...new Set(products.map((p) => p.color))].sort()
   const categories = [...new Set(products.map((p) => p.category))].sort()
 
+  // Calculate pagination
+  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const currentProducts = filteredProducts.slice(startIndex, endIndex)
+
   // Load products
   useEffect(() => {
     const loadProducts = async () => {
@@ -496,6 +506,7 @@ export default function Catalog() {
     }
 
     setFilteredProducts(filtered)
+    setCurrentPage(1) // Reset to first page when filters change
   }, [products, searchQuery, selectedTeam, selectedColor, selectedCategory, priceRange, sortBy])
 
   // Handle search from URL params
@@ -514,10 +525,65 @@ export default function Catalog() {
     setPriceRange({ min: "", max: "" })
     setSortBy("name")
     setSearchParams({})
+    setCurrentPage(1)
   }
 
   const hasActiveFilters =
     searchQuery || selectedTeam || selectedColor || selectedCategory || priceRange.min || priceRange.max
+
+  // Pagination handlers
+  const goToPage = (page) => {
+    setCurrentPage(page)
+    window.scrollTo({ top: 0, behavior: "smooth" })
+  }
+
+  const goToPrevPage = () => {
+    if (currentPage > 1) {
+      goToPage(currentPage - 1)
+    }
+  }
+
+  const goToNextPage = () => {
+    if (currentPage < totalPages) {
+      goToPage(currentPage + 1)
+    }
+  }
+
+  // Generate page numbers for pagination
+  const getPageNumbers = () => {
+    const pages = []
+    const maxVisiblePages = 5
+
+    if (totalPages <= maxVisiblePages) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i)
+      }
+    } else {
+      if (currentPage <= 3) {
+        for (let i = 1; i <= 4; i++) {
+          pages.push(i)
+        }
+        pages.push("...")
+        pages.push(totalPages)
+      } else if (currentPage >= totalPages - 2) {
+        pages.push(1)
+        pages.push("...")
+        for (let i = totalPages - 3; i <= totalPages; i++) {
+          pages.push(i)
+        }
+      } else {
+        pages.push(1)
+        pages.push("...")
+        for (let i = currentPage - 1; i <= currentPage + 1; i++) {
+          pages.push(i)
+        }
+        pages.push("...")
+        pages.push(totalPages)
+      }
+    }
+
+    return pages
+  }
 
   if (loading) {
     return (
@@ -538,6 +604,11 @@ export default function Catalog() {
           <h1 className="text-4xl font-black text-gray-900 mb-4">Каталог</h1>
           <p className="text-gray-600 text-lg">
             Найдено {filteredProducts.length} из {products.length} товаров
+            {filteredProducts.length > 0 && (
+              <span className="ml-2 text-sm">
+                (страница {currentPage} из {totalPages})
+              </span>
+            )}
           </p>
         </div>
 
@@ -711,13 +782,96 @@ export default function Catalog() {
                 )}
               </div>
             ) : (
-              <div
-                className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" : "space-y-6"}
-              >
-                {filteredProducts.map((product) => (
-                  <ProductCard key={product.id} product={product} viewMode={viewMode} />
-                ))}
-              </div>
+              <>
+                {/* Products */}
+                <div
+                  className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" : "space-y-6"}
+                >
+                  {currentProducts.map((product) => (
+                    <ProductCard key={product.id} product={product} viewMode={viewMode} />
+                  ))}
+                </div>
+
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <div className="mt-12 flex flex-col items-center space-y-4">
+                    {/* Page Info */}
+                    <div className="text-sm text-gray-600">
+                      Показано {startIndex + 1}-{Math.min(endIndex, filteredProducts.length)} из{" "}
+                      {filteredProducts.length} товаров
+                    </div>
+
+                    {/* Pagination Controls */}
+                    <div className="flex items-center space-x-2">
+                      {/* Previous Button */}
+                      <button
+                        onClick={goToPrevPage}
+                        disabled={currentPage === 1}
+                        className={`p-2 rounded-lg border transition-colors ${currentPage === 1
+                          ? "border-gray-200 text-gray-400 cursor-not-allowed"
+                          : "border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-red-600 hover:text-red-600"
+                          }`}
+                      >
+                        <ChevronLeft size={20} />
+                      </button>
+
+                      {/* Page Numbers */}
+                      <div className="flex items-center space-x-1">
+                        {getPageNumbers().map((page, index) => (
+                          <div key={index}>
+                            {page === "..." ? (
+                              <span className="px-3 py-2 text-gray-400">...</span>
+                            ) : (
+                              <button
+                                onClick={() => goToPage(page)}
+                                className={`px-4 py-2 rounded-lg border transition-colors ${currentPage === page
+                                  ? "border-red-600 bg-red-600 text-white"
+                                  : "border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-red-600 hover:text-red-600"
+                                  }`}
+                              >
+                                {page}
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Next Button */}
+                      <button
+                        onClick={goToNextPage}
+                        disabled={currentPage === totalPages}
+                        className={`p-2 rounded-lg border transition-colors ${currentPage === totalPages
+                          ? "border-gray-200 text-gray-400 cursor-not-allowed"
+                          : "border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-red-600 hover:text-red-600"
+                          }`}
+                      >
+                        <ChevronRight size={20} />
+                      </button>
+                    </div>
+
+                    {/* Quick Jump to Page */}
+                    {totalPages > 10 && (
+                      <div className="flex items-center space-x-2 text-sm">
+                        <span className="text-gray-600">Перейти на страницу:</span>
+                        <input
+                          type="number"
+                          min="1"
+                          max={totalPages}
+                          value={currentPage}
+                          onChange={(e) => {
+                            const page = Number.parseInt(e.target.value)
+                            if (page >= 1 && page <= totalPages) {
+                              goToPage(page)
+                            }
+                          }}
+                          className="w-16 px-2 py-1 border border-gray-300 rounded text-center focus:outline-none focus:ring-2 focus:ring-red-600"
+                        />
+                        <span className="text-gray-600">из {totalPages}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>
