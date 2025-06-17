@@ -1,10 +1,11 @@
 "use client"
 
-import { ShoppingCart, User, Menu, X, LogOut, Settings, Package, Search } from "lucide-react"
+import { ShoppingCart, User, Menu, X, LogOut, Settings, Package, Search, Heart } from "lucide-react"
 import { useState, useRef, useEffect } from "react"
 import { Link, useLocation, useNavigate } from "react-router-dom"
 import { useAuth } from "../context/AuthContext"
 import { useCart } from "../context/CartContext"
+import { useWishlist } from "../context/WishlistContext"
 
 export default function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
@@ -16,6 +17,7 @@ export default function Header() {
   const navigate = useNavigate()
   const { user, logout, isAuthenticated } = useAuth()
   const { getCartItemsCount } = useCart()
+  const { getWishlistCount } = useWishlist()
   const userMenuRef = useRef(null)
   const searchRef = useRef(null)
 
@@ -139,6 +141,20 @@ export default function Header() {
               )}
             </div>
 
+            {/* Wishlist */}
+            <Link
+              to="/wishlist"
+              className="relative p-2 text-gray-700 hover:text-red-600 transition-colors rounded-lg hover:bg-gray-50"
+              aria-label={`Избранное (${getWishlistCount()} товаров)`}
+            >
+              <Heart size={20} />
+              {getWishlistCount() > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
+                  {getWishlistCount() > 99 ? "99+" : getWishlistCount()}
+                </span>
+              )}
+            </Link>
+
             {/* Cart */}
             <Link
               to="/cart"
@@ -224,7 +240,7 @@ export default function Header() {
             ) : (
               <Link
                 to="/login"
-                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-red-600 focus:ring-offset-2"
+                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-red-600 focus:ring-offset-2"
               >
                 Войти
               </Link>

@@ -5,10 +5,12 @@ import { Link } from "react-router-dom"
 import { Minus, Plus, Trash2, ShoppingBag, ArrowLeft, CreditCard } from "lucide-react"
 import { useCart } from "../context/CartContext"
 import { useAuth } from "../context/AuthContext"
+import { useToast } from "../context/ToastContext"
 
 export default function Cart() {
   const { cartItems, updateQuantity, removeFromCart, getCartTotal, clearCart } = useCart()
   const { isAuthenticated } = useAuth()
+  const { showSuccess, showError } = useToast()
   const [isCheckingOut, setIsCheckingOut] = useState(false)
 
   // Debug logging
@@ -16,12 +18,26 @@ export default function Cart() {
     console.log("Cart component rendered with items:", cartItems)
   }, [cartItems])
 
-  const handleQuantityChange = (cartId, newQuantity) => {
-    updateQuantity(cartId, newQuantity)
+  const handleQuantityChange = async (cartId, newQuantity) => {
+    if (newQuantity <= 0) {
+      handleRemoveItem(cartId)
+      return
+    }
+
+    const result = await updateQuantity(cartId, newQuantity)
+
+    if (!result.success) {
+      showError(result.error)
+      // If there's a maxQuantity provided, update to that value
+      if (result.maxQuantity) {
+        updateQuantity(cartId, result.maxQuantity)
+      }
+    }
   }
 
   const handleRemoveItem = (cartId) => {
     removeFromCart(cartId)
+    showSuccess("Товар удален из корзины")
   }
 
   const handleCheckout = async () => {
@@ -34,7 +50,7 @@ export default function Cart() {
 
     // Simulate checkout process
     setTimeout(() => {
-      alert("Заказ оформлен! Спасибо за покупку!")
+      showSuccess("Заказ оформлен! Спасибо за покупку!", "Заказ успешно создан")
       clearCart()
       setIsCheckingOut(false)
     }, 2000)
@@ -115,6 +131,9 @@ export default function Cart() {
                         <span>Размер: {item.selectedSize}</span>
                       </div>
                       <div className="text-xl font-black text-red-600">₸{Number(item.price).toLocaleString()}</div>
+
+                      {/* Stock info */}
+                      <div className="text-xs text-gray-500 mt-1">В наличии: {item.stock} шт.</div>
                     </div>
 
                     {/* Quantity Controls */}
@@ -130,7 +149,12 @@ export default function Cart() {
 
                       <button
                         onClick={() => handleQuantityChange(item.cartId, item.quantity + 1)}
-                        className="w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-lg flex items-center justify-center transition-colors"
+                        className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${
+                          item.quantity >= item.stock
+                            ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                            : "bg-gray-100 hover:bg-gray-200"
+                        }`}
+                        disabled={item.quantity >= item.stock}
                       >
                         <Plus size={16} />
                       </button>

@@ -4,54 +4,55 @@ import { useState } from "react"
 import { ShoppingCart, Heart, Eye, Tag } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { useCart } from "../context/CartContext"
+import { useWishlist } from "../context/WishlistContext"
+import { useToast } from "../context/ToastContext"
 
 export default function ProductCard({ product, viewMode = "grid" }) {
   const [isHovered, setIsHovered] = useState(false)
-  const [isLiked, setIsLiked] = useState(false)
   const [imageLoading, setImageLoading] = useState(true)
   const [imageError, setImageError] = useState(false)
   const [selectedSize, setSelectedSize] = useState("M")
-  const { addToCart, isLoading } = useCart()
+  const { addToCart, isLoading, getAvailableQuantity } = useCart()
+  const { isInWishlist, toggleWishlist } = useWishlist()
+  const { showCartSuccess, showError, showWishlistSuccess } = useToast()
   const navigate = useNavigate()
 
   const sizes = ["XS", "S", "M", "L", "XL", "XXL"]
+  const availableQuantity = getAvailableQuantity(product.id, selectedSize, product.stock)
 
   const handleAddToCart = async (e) => {
     e.preventDefault()
     e.stopPropagation()
 
+    if (availableQuantity === 0) {
+      showError(`Товар "${product.name}" размера ${selectedSize} уже в корзине в максимальном количестве`)
+      return
+    }
+
     try {
       const result = await addToCart(product, selectedSize)
 
       if (result && result.success) {
-        // Visual feedback
-        const button = e.target.closest("button")
-        if (button) {
-          const originalContent = button.innerHTML
-          button.innerHTML =
-            '<span class="flex items-center space-x-2"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"></path></svg><span>Добавлено!</span></span>'
-          button.classList.add("bg-green-600", "hover:bg-green-700")
-          button.classList.remove("bg-red-600", "hover:bg-red-700")
-
-          setTimeout(() => {
-            button.innerHTML = originalContent
-            button.classList.remove("bg-green-600", "hover:bg-green-700")
-            button.classList.add("bg-red-600", "hover:bg-red-700")
-          }, 2000)
-        }
+        showCartSuccess(result.message || `${product.name} (${selectedSize}) добавлен в корзину`, "Товар добавлен!")
       } else {
-        alert("Ошибка при добавлении в корзину")
+        showError(result?.error || "Ошибка при добавлении в корзину")
       }
     } catch (error) {
       console.error("Error adding to cart:", error)
-      alert("Ошибка при добавлении в корзину")
+      showError("Произошла ошибка при добавлении товара")
     }
   }
 
   const handleToggleLike = (e) => {
     e.preventDefault()
     e.stopPropagation()
-    setIsLiked(!isLiked)
+
+    const wasAdded = toggleWishlist(product)
+    if (wasAdded) {
+      showWishlistSuccess(`${product.name} добавлен в избранное`, "Добавлено в избранное!")
+    } else {
+      showWishlistSuccess(`${product.name} удален из избранного`, "Удалено из избранного")
+    }
   }
 
   const handleViewProduct = (e) => {
@@ -122,12 +123,12 @@ export default function ProductCard({ product, viewMode = "grid" }) {
                 <button
                   onClick={handleToggleLike}
                   className={`p-2 rounded-full transition-all ${
-                    isLiked
+                    isInWishlist(product.id)
                       ? "bg-red-100 text-red-600"
                       : "bg-gray-100 text-gray-400 hover:bg-red-100 hover:text-red-600"
                   }`}
                 >
-                  <Heart size={18} fill={isLiked ? "currentColor" : "none"} />
+                  <Heart size={18} fill={isInWishlist(product.id) ? "currentColor" : "none"} />
                 </button>
               </div>
 
@@ -174,9 +175,9 @@ export default function ProductCard({ product, viewMode = "grid" }) {
                 </button>
                 <button
                   onClick={handleAddToCart}
-                  disabled={product.stock === 0 || isLoading}
+                  disabled={product.stock === 0 || isLoading || availableQuantity === 0}
                   className={`px-6 py-3 rounded-xl font-bold transition-all flex items-center space-x-2 ${
-                    product.stock === 0 || isLoading
+                    product.stock === 0 || isLoading || availableQuantity === 0
                       ? "bg-gray-200 text-gray-400 cursor-not-allowed"
                       : "bg-red-600 text-white hover:bg-red-700 hover:scale-105 shadow-lg shadow-red-600/25"
                   }`}
@@ -250,11 +251,13 @@ export default function ProductCard({ product, viewMode = "grid" }) {
           <button
             onClick={handleToggleLike}
             className={`p-3 rounded-full transition-all shadow-lg ${
-              isLiked ? "bg-red-600 text-white" : "bg-white text-gray-900 hover:bg-red-600 hover:text-white"
+              isInWishlist(product.id)
+                ? "bg-red-600 text-white"
+                : "bg-white text-gray-900 hover:bg-red-600 hover:text-white"
             }`}
             title="Добавить в избранное"
           >
-            <Heart size={18} fill={isLiked ? "currentColor" : "none"} />
+            <Heart size={18} fill={isInWishlist(product.id) ? "currentColor" : "none"} />
           </button>
         </div>
 
@@ -279,13 +282,13 @@ export default function ProductCard({ product, viewMode = "grid" }) {
         <button
           onClick={handleToggleLike}
           className={`absolute top-3 right-3 p-2 rounded-full transition-all shadow-lg ${
-            isLiked
+            isInWishlist(product.id)
               ? "bg-red-600 text-white"
               : "bg-white/90 text-gray-700 hover:bg-red-600 hover:text-white backdrop-blur-sm"
           }`}
           title="Добавить в избранное"
         >
-          <Heart size={16} fill={isLiked ? "currentColor" : "none"} />
+          <Heart size={16} fill={isInWishlist(product.id) ? "currentColor" : "none"} />
         </button>
       </div>
 
@@ -327,9 +330,9 @@ export default function ProductCard({ product, viewMode = "grid" }) {
 
           <button
             onClick={handleAddToCart}
-            disabled={product.stock === 0 || isLoading}
+            disabled={product.stock === 0 || isLoading || availableQuantity === 0}
             className={`p-3 rounded-xl font-bold transition-all duration-300 ${
-              product.stock === 0 || isLoading
+              product.stock === 0 || isLoading || availableQuantity === 0
                 ? "bg-gray-200 text-gray-400 cursor-not-allowed"
                 : `${
                     isHovered
@@ -337,7 +340,13 @@ export default function ProductCard({ product, viewMode = "grid" }) {
                       : "bg-gray-100 text-gray-600 hover:bg-red-600 hover:text-white"
                   }`
             }`}
-            title={product.stock === 0 ? "Нет в наличии" : "Добавить в корзину"}
+            title={
+              product.stock === 0
+                ? "Нет в наличии"
+                : availableQuantity === 0
+                  ? "Максимум в корзине"
+                  : "Добавить в корзину"
+            }
           >
             {isLoading ? (
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>

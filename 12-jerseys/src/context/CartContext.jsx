@@ -60,46 +60,93 @@ export const CartProvider = ({ children }) => {
       // Simulate API delay
       await new Promise((resolve) => setTimeout(resolve, 300))
 
-      setCartItems((prevItems) => {
-        console.log("Previous cart items:", prevItems)
+      return new Promise((resolve) => {
+        setCartItems((prevItems) => {
+          console.log("Previous cart items:", prevItems)
 
-        // Check if item with same product and size already exists
-        const existingItemIndex = prevItems.findIndex((item) => item.id === product.id && item.selectedSize === size)
+          // Check if item with same product and size already exists
+          const existingItemIndex = prevItems.findIndex((item) => item.id === product.id && item.selectedSize === size)
 
-        let updatedItems
-        if (existingItemIndex >= 0) {
-          // Update existing item quantity
-          updatedItems = [...prevItems]
-          updatedItems[existingItemIndex] = {
-            ...updatedItems[existingItemIndex],
-            quantity: updatedItems[existingItemIndex].quantity + quantity,
+          let updatedItems
+          let resultMessage = ""
+
+          if (existingItemIndex >= 0) {
+            // Update existing item quantity with stock validation
+            const existingItem = prevItems[existingItemIndex]
+            const newQuantity = existingItem.quantity + quantity
+
+            // Check if new quantity exceeds stock
+            if (newQuantity > product.stock) {
+              const availableToAdd = product.stock - existingItem.quantity
+              if (availableToAdd <= 0) {
+                resolve({
+                  success: false,
+                  error: `Товар уже в корзине в максимальном количестве (${product.stock} шт.)`,
+                  maxReached: true,
+                })
+                return prevItems
+              } else {
+                // Add only available quantity
+                updatedItems = [...prevItems]
+                updatedItems[existingItemIndex] = {
+                  ...updatedItems[existingItemIndex],
+                  quantity: product.stock,
+                }
+                resultMessage = `Добавлено ${availableToAdd} шт. (максимум достигнут)`
+                console.log("Updated existing item to max stock:", updatedItems[existingItemIndex])
+              }
+            } else {
+              // Normal quantity update
+              updatedItems = [...prevItems]
+              updatedItems[existingItemIndex] = {
+                ...updatedItems[existingItemIndex],
+                quantity: newQuantity,
+              }
+              resultMessage = `Количество обновлено: ${newQuantity} шт.`
+              console.log("Updated existing item:", updatedItems[existingItemIndex])
+            }
+          } else {
+            // Add new item with stock validation
+            if (quantity > product.stock) {
+              resolve({
+                success: false,
+                error: `В наличии только ${product.stock} шт.`,
+                stockLimit: true,
+              })
+              return prevItems
+            }
+
+            const newItem = {
+              id: product.id,
+              name: product.name,
+              team: product.team,
+              color: product.color,
+              price: product.price,
+              image: product.image || product.imageUrl,
+              description: product.description,
+              selectedSize: size,
+              quantity,
+              stock: product.stock, // Store stock info for validation
+              cartId: `${product.id}-${size}-${Date.now()}`,
+              addedAt: new Date().toISOString(),
+            }
+
+            updatedItems = [...prevItems, newItem]
+            resultMessage = `Товар добавлен в корзину (${quantity} шт.)`
+            console.log("Added new item:", newItem)
           }
-          console.log("Updated existing item:", updatedItems[existingItemIndex])
-        } else {
-          // Add new item
-          const newItem = {
-            id: product.id,
-            name: product.name,
-            team: product.team,
-            color: product.color,
-            price: product.price,
-            image: product.image || product.imageUrl,
-            description: product.description,
-            selectedSize: size,
-            quantity,
-            cartId: `${product.id}-${size}-${Date.now()}`,
-            addedAt: new Date().toISOString(),
-          }
 
-          updatedItems = [...prevItems, newItem]
-          console.log("Added new item:", newItem)
-        }
+          console.log("Updated cart items:", updatedItems)
 
-        console.log("Updated cart items:", updatedItems)
-        return updatedItems
+          resolve({
+            success: true,
+            message: resultMessage,
+            item: updatedItems[existingItemIndex >= 0 ? existingItemIndex : updatedItems.length - 1],
+          })
+
+          return updatedItems
+        })
       })
-
-      return { success: true }
     } catch (error) {
       console.error("Error adding to cart:", error)
       return { success: false, error: error.message }
@@ -122,13 +169,36 @@ export const CartProvider = ({ children }) => {
 
     if (newQuantity <= 0) {
       removeFromCart(cartId)
-      return
+      return { success: true, message: "Товар удален из корзины" }
     }
 
-    setCartItems((prevItems) => {
-      const updatedItems = prevItems.map((item) => (item.cartId === cartId ? { ...item, quantity: newQuantity } : item))
-      console.log("Cart after quantity update:", updatedItems)
-      return updatedItems
+    return new Promise((resolve) => {
+      setCartItems((prevItems) => {
+        const updatedItems = prevItems.map((item) => {
+          if (item.cartId === cartId) {
+            // Validate against stock
+            if (newQuantity > item.stock) {
+              resolve({
+                success: false,
+                error: `В наличии только ${item.stock} шт.`,
+                maxQuantity: item.stock,
+              })
+              return item // Don't update if exceeds stock
+            }
+
+            resolve({
+              success: true,
+              message: `Количество обновлено: ${newQuantity} шт.`,
+            })
+
+            return { ...item, quantity: newQuantity }
+          }
+          return item
+        })
+
+        console.log("Cart after quantity update:", updatedItems)
+        return updatedItems
+      })
     })
   }
 
@@ -167,6 +237,24 @@ export const CartProvider = ({ children }) => {
     }
   }
 
+  // Get current quantity of specific product and size in cart
+  const getItemQuantityInCart = (productId, size) => {
+    const item = cartItems.find((item) => item.id === productId && item.selectedSize === size)
+    return item ? item.quantity : 0
+  }
+
+  // Check if we can add more of specific item
+  const canAddMore = (productId, size, stock) => {
+    const currentQuantity = getItemQuantityInCart(productId, size)
+    return currentQuantity < stock
+  }
+
+  // Get available quantity that can be added
+  const getAvailableQuantity = (productId, size, stock) => {
+    const currentQuantity = getItemQuantityInCart(productId, size)
+    return Math.max(0, stock - currentQuantity)
+  }
+
   const value = {
     cartItems,
     addToCart,
@@ -176,6 +264,9 @@ export const CartProvider = ({ children }) => {
     getCartTotal,
     getCartItemsCount,
     getCartSummary,
+    getItemQuantityInCart,
+    canAddMore,
+    getAvailableQuantity,
     isLoading,
   }
 

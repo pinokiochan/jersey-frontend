@@ -17,13 +17,16 @@ import {
   ChevronRight,
 } from "lucide-react"
 import { useCart } from "../context/CartContext"
+import { useWishlist } from "../context/WishlistContext"
+import { useToast } from "../context/ToastContext"
 import LoadingSpinner from "../components/LoadingSpinner"
-import '../App.css';
 
 export default function ProductDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { addToCart, isLoading: cartLoading } = useCart()
+  const { addToCart, isLoading: cartLoading, getItemQuantityInCart, getAvailableQuantity } = useCart()
+  const { isInWishlist, toggleWishlist } = useWishlist()
+  const { showCartSuccess, showError, showWishlistSuccess, showSuccess } = useToast()
 
   const [product, setProduct] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -31,7 +34,6 @@ export default function ProductDetail() {
   const [selectedSize, setSelectedSize] = useState("")
   const [quantity, setQuantity] = useState(1)
   const [selectedImage, setSelectedImage] = useState(0)
-  const [isLiked, setIsLiked] = useState(false)
   const [showSizeGuide, setShowSizeGuide] = useState(false)
 
   // Navigation states
@@ -42,7 +44,7 @@ export default function ProductDetail() {
   const [isTransitioning, setIsTransitioning] = useState(false)
 
   // МЕСТО ДЛЯ ВАШИХ ТОВАРОВ - замените этот массив на ваши данные
-   const mockProducts = [
+  const mockProducts = [
     {
       id: 1,
       name: "Manchester United Retro",
@@ -435,6 +437,11 @@ export default function ProductDetail() {
     },
   ]
 
+  // Get current quantity in cart and available quantity
+  const currentQuantityInCart = product && selectedSize ? getItemQuantityInCart(product.id, selectedSize) : 0
+  const availableQuantity = product && selectedSize ? getAvailableQuantity(product.id, selectedSize, product.stock) : 0
+  const maxQuantityCanAdd = Math.min(availableQuantity, product?.stock || 0)
+
   // Load product and all products
   useEffect(() => {
     const fetchProduct = async () => {
@@ -462,6 +469,7 @@ export default function ProductDetail() {
 
         setSelectedSize(foundProduct.sizes[2] || foundProduct.sizes[0]) // Default to M or first size
         setSelectedImage(0) // Reset image selection
+        setQuantity(1) // Reset quantity
       } catch (err) {
         setError(err.message)
       } finally {
@@ -473,6 +481,16 @@ export default function ProductDetail() {
       fetchProduct()
     }
   }, [id])
+
+  // Update quantity when size changes
+  useEffect(() => {
+    if (product && selectedSize) {
+      const available = getAvailableQuantity(product.id, selectedSize, product.stock)
+      if (quantity > available) {
+        setQuantity(Math.max(1, Math.min(quantity, available)))
+      }
+    }
+  }, [selectedSize, product])
 
   // Calculate adjacent products
   useEffect(() => {
@@ -524,18 +542,43 @@ export default function ProductDetail() {
 
   const handleAddToCart = async () => {
     if (!selectedSize) {
-      alert("Пожалуйста, выберите размер")
+      showError("Пожалуйста, выберите размер")
+      return
+    }
+
+    if (availableQuantity === 0) {
+      showError(`Товар "${product.name}" размера ${selectedSize} уже в корзине в максимальном количестве`)
+      return
+    }
+
+    if (quantity > availableQuantity) {
+      showError(`Можно добавить только ${availableQuantity} шт. (остальное уже в корзине)`)
       return
     }
 
     try {
       const result = await addToCart(product, selectedSize, quantity)
+
       if (result?.success) {
-        alert("Товар добавлен в корзину!")
+        showCartSuccess(result.message || `${product.name} (${selectedSize}) добавлен в корзину`, "Товар добавлен!")
+
+        // Reset quantity to 1 after successful add
+        setQuantity(1)
+      } else {
+        showError(result?.error || "Ошибка при добавлении в корзину")
       }
     } catch (error) {
       console.error("Error adding to cart:", error)
-      alert("Ошибка при добавлении в корзину")
+      showError("Произошла ошибка при добавлении товара")
+    }
+  }
+
+  const handleToggleWishlist = () => {
+    const wasAdded = toggleWishlist(product)
+    if (wasAdded) {
+      showWishlistSuccess(`${product.name} добавлен в избранное`, "Добавлено в избранное!")
+    } else {
+      showWishlistSuccess(`${product.name} удален из избранного`, "Удалено из избранного")
     }
   }
 
@@ -552,11 +595,11 @@ export default function ProductDetail() {
       }
     } else {
       navigator.clipboard.writeText(window.location.href)
-      alert("Ссылка скопирована!")
+      showSuccess("Ссылка скопирована в буфер обмена!")
     }
   }
 
-  // Product Navigation Component
+  // Related Products Component - упрощенный дизайн
   const RelatedProducts = () => (
     <div className="mt-16">
       <h3 className="text-2xl font-bold text-gray-900 mb-6">Другие товары</h3>
@@ -610,6 +653,55 @@ export default function ProductDetail() {
     </div>
   )
 
+  // Product Navigation Component - для навигации внизу
+  const ProductNavigation = () => (
+    <div className="flex items-center justify-between bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-8">
+      {/* Previous Product */}
+      <button
+        onClick={goToPrevProduct}
+        disabled={!prevProduct || isTransitioning}
+        className={`flex items-center space-x-3 p-3 rounded-xl transition-all ${prevProduct && !isTransitioning
+            ? "hover:bg-gray-50 text-gray-700 hover:text-red-600"
+            : "text-gray-400 cursor-not-allowed"
+          }`}
+      >
+        <ChevronLeft size={20} />
+        {prevProduct && (
+          <div className="text-left hidden sm:block">
+            <div className="text-xs text-gray-500">Предыдущий</div>
+            <div className="font-medium truncate max-w-32">{prevProduct.name}</div>
+          </div>
+        )}
+      </button>
+
+      {/* Product Counter */}
+      <div className="text-center">
+        <div className="text-sm text-gray-500">
+          {currentProductIndex + 1} из {allProducts.length}
+        </div>
+        <div className="text-xs text-gray-400">товаров</div>
+      </div>
+
+      {/* Next Product */}
+      <button
+        onClick={goToNextProduct}
+        disabled={!nextProduct || isTransitioning}
+        className={`flex items-center space-x-3 p-3 rounded-xl transition-all ${nextProduct && !isTransitioning
+            ? "hover:bg-gray-50 text-gray-700 hover:text-red-600"
+            : "text-gray-400 cursor-not-allowed"
+          }`}
+      >
+        {nextProduct && (
+          <div className="text-right hidden sm:block">
+            <div className="text-xs text-gray-500">Следующий</div>
+            <div className="font-medium truncate max-w-32">{nextProduct.name}</div>
+          </div>
+        )}
+        <ChevronRight size={20} />
+      </button>
+    </div>
+  )
+
   // Quick Navigation Buttons
   const QuickNavButtons = () => (
     <div className="fixed right-6 top-1/2 transform -translate-y-1/2 z-40 flex flex-col space-y-2">
@@ -636,57 +728,6 @@ export default function ProductDetail() {
           <ChevronRight size={20} />
         </button>
       )}
-    </div>
-  )
-
-  // Related Products Component
-  const ProductNavigation = () => (
-    <div className="flex items-center justify-between bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-8">
-      {/* Previous Product */}
-      <button
-        onClick={goToPrevProduct}
-        disabled={!prevProduct || isTransitioning}
-        className={`flex items-center space-x-3 p-3 rounded-xl transition-all ${
-          prevProduct && !isTransitioning
-            ? "hover:bg-gray-50 text-gray-700 hover:text-red-600"
-            : "text-gray-400 cursor-not-allowed"
-        }`}
-      >
-        <ChevronLeft size={20} />
-        {prevProduct && (
-          <div className="text-left hidden sm:block">
-            <div className="text-xs text-gray-500">Предыдущий</div>
-            <div className="font-medium truncate max-w-32">{prevProduct.name}</div>
-          </div>
-        )}
-      </button>
-
-      {/* Product Counter */}
-      <div className="text-center">
-        <div className="text-sm text-gray-500">
-          {currentProductIndex + 1} из {allProducts.length}
-        </div>
-        <div className="text-xs text-gray-400">товаров</div>
-      </div>
-
-      {/* Next Product */}
-      <button
-        onClick={goToNextProduct}
-        disabled={!nextProduct || isTransitioning}
-        className={`flex items-center space-x-3 p-3 rounded-xl transition-all ${
-          nextProduct && !isTransitioning
-            ? "hover:bg-gray-50 text-gray-700 hover:text-red-600"
-            : "text-gray-400 cursor-not-allowed"
-        }`}
-      >
-        {nextProduct && (
-          <div className="text-right hidden sm:block">
-            <div className="text-xs text-gray-500">Следующий</div>
-            <div className="font-medium truncate max-w-32">{nextProduct.name}</div>
-          </div>
-        )}
-        <ChevronRight size={20} />
-      </button>
     </div>
   )
 
@@ -732,10 +773,11 @@ export default function ProductDetail() {
           </button>
         </div>
 
-        {/* Product Navigation */}
+        {/* Related Products - сверху */}
         <RelatedProducts />
-        <div className="my-box"></div>
-        
+
+        {/* Отступ как в вашем файле */}
+        <div style={{ margin: "20px", padding: "10px" }}></div>
 
         {/* Transition Overlay */}
         {isTransitioning && (
@@ -752,7 +794,7 @@ export default function ProductDetail() {
               <img
                 src={product.images?.[selectedImage] || product.image || "/placeholder.svg?height=600&width=600"}
                 alt={product.name}
-                className="w-full h-96 lg:h-[500px] object-cover"
+                className="w-full h-96 lg:h-[900px] object-cover"
               />
             </div>
 
@@ -763,9 +805,8 @@ export default function ProductDetail() {
                   <button
                     key={index}
                     onClick={() => setSelectedImage(index)}
-                    className={`w-20 h-20 rounded-lg overflow-hidden border-2 transition-colors ${
-                      selectedImage === index ? "border-red-600" : "border-gray-200"
-                    }`}
+                    className={`w-20 h-20 rounded-lg overflow-hidden border-2 transition-colors ${selectedImage === index ? "border-red-600" : "border-gray-200"
+                      }`}
                   >
                     <img
                       src={image || "/placeholder.svg"}
@@ -788,14 +829,13 @@ export default function ProductDetail() {
                 </span>
                 <div className="flex items-center space-x-2">
                   <button
-                    onClick={() => setIsLiked(!isLiked)}
-                    className={`p-2 rounded-full transition-colors ${
-                      isLiked
+                    onClick={handleToggleWishlist}
+                    className={`p-2 rounded-full transition-colors ${isInWishlist(product.id)
                         ? "bg-red-100 text-red-600"
                         : "bg-gray-100 text-gray-400 hover:bg-red-100 hover:text-red-600"
-                    }`}
+                      }`}
                   >
-                    <Heart size={20} fill={isLiked ? "currentColor" : "none"} />
+                    <Heart size={20} fill={isInWishlist(product.id) ? "currentColor" : "none"} />
                   </button>
                   <button
                     onClick={handleShare}
@@ -837,17 +877,36 @@ export default function ProductDetail() {
                   <button
                     key={size}
                     onClick={() => setSelectedSize(size)}
-                    className={`py-3 px-4 border rounded-lg font-medium transition-colors ${
-                      selectedSize === size
+                    className={`py-3 px-4 border rounded-lg font-medium transition-colors ${selectedSize === size
                         ? "border-red-600 bg-red-600 text-white"
                         : "border-gray-200 hover:border-red-600 hover:text-red-600"
-                    }`}
+                      }`}
                   >
                     {size}
                   </button>
                 ))}
               </div>
             </div>
+
+            {/* Stock and Cart Info */}
+            {selectedSize && (
+              <div className="bg-gray-50 rounded-xl p-4">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-600">В наличии:</span>
+                  <span className="font-semibold text-gray-900">{product.stock} шт.</span>
+                </div>
+                {currentQuantityInCart > 0 && (
+                  <div className="flex items-center justify-between text-sm mt-2">
+                    <span className="text-gray-600">В корзине:</span>
+                    <span className="font-semibold text-red-600">{currentQuantityInCart} шт.</span>
+                  </div>
+                )}
+                <div className="flex items-center justify-between text-sm mt-2">
+                  <span className="text-gray-600">Можно добавить:</span>
+                  <span className="font-semibold text-green-600">{availableQuantity} шт.</span>
+                </div>
+              </div>
+            )}
 
             {/* Quantity */}
             <div>
@@ -857,18 +916,22 @@ export default function ProductDetail() {
                   <button
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
                     className="p-3 hover:bg-gray-50 transition-colors"
+                    disabled={quantity <= 1}
                   >
                     <Minus size={16} />
                   </button>
                   <span className="px-4 py-3 font-semibold">{quantity}</span>
                   <button
-                    onClick={() => setQuantity(Math.min(product.stock, quantity + 1))}
+                    onClick={() => setQuantity(Math.min(maxQuantityCanAdd, quantity + 1))}
                     className="p-3 hover:bg-gray-50 transition-colors"
+                    disabled={quantity >= maxQuantityCanAdd}
                   >
                     <Plus size={16} />
                   </button>
                 </div>
-                <span className="text-gray-600">В наличии: {product.stock} шт.</span>
+                {maxQuantityCanAdd > 0 && (
+                  <span className="text-gray-600 text-sm">Максимум: {maxQuantityCanAdd} шт.</span>
+                )}
               </div>
             </div>
 
@@ -876,19 +939,24 @@ export default function ProductDetail() {
             <div className="space-y-4">
               <button
                 onClick={handleAddToCart}
-                disabled={product.stock === 0 || cartLoading}
-                className={`w-full py-4 rounded-xl font-bold text-lg transition-all flex items-center justify-center space-x-2 ${
-                  product.stock === 0 || cartLoading
+                disabled={product.stock === 0 || cartLoading || availableQuantity === 0}
+                className={`w-full py-4 rounded-xl font-bold text-lg transition-all flex items-center justify-center space-x-2 ${product.stock === 0 || cartLoading || availableQuantity === 0
                     ? "bg-gray-200 text-gray-400 cursor-not-allowed"
                     : "bg-red-600 text-white hover:bg-red-700 hover:scale-105 shadow-lg shadow-red-600/25"
-                }`}
+                  }`}
               >
                 {cartLoading ? (
                   <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
                 ) : (
                   <>
                     <ShoppingCart size={20} />
-                    <span>Добавить в корзину</span>
+                    <span>
+                      {availableQuantity === 0
+                        ? "Максимум в корзине"
+                        : product.stock === 0
+                          ? "Нет в наличии"
+                          : "Добавить в корзину"}
+                    </span>
                   </>
                 )}
               </button>
@@ -983,7 +1051,7 @@ export default function ProductDetail() {
           </div>
         </div>
 
-        {/* Related Products */}
+        {/* Product Navigation - внизу */}
         <ProductNavigation />
       </div>
 
