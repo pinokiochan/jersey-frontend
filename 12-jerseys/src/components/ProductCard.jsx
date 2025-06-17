@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { ShoppingCart, Heart, Eye, Tag } from "lucide-react"
+import { useNavigate } from "react-router-dom"
 import { useCart } from "../context/CartContext"
 
 export default function ProductCard({ product, viewMode = "grid" }) {
@@ -11,14 +12,13 @@ export default function ProductCard({ product, viewMode = "grid" }) {
   const [imageError, setImageError] = useState(false)
   const [selectedSize, setSelectedSize] = useState("M")
   const { addToCart, isLoading } = useCart()
+  const navigate = useNavigate()
 
   const sizes = ["XS", "S", "M", "L", "XL", "XXL"]
 
   const handleAddToCart = async (e) => {
     e.preventDefault()
     e.stopPropagation()
-
-    console.log("Adding product to cart:", { product, selectedSize })
 
     try {
       const result = await addToCart(product, selectedSize)
@@ -40,7 +40,6 @@ export default function ProductCard({ product, viewMode = "grid" }) {
           }, 2000)
         }
       } else {
-        console.error("Failed to add to cart:", result)
         alert("Ошибка при добавлении в корзину")
       }
     } catch (error) {
@@ -57,8 +56,7 @@ export default function ProductCard({ product, viewMode = "grid" }) {
 
   const handleViewProduct = (e) => {
     e.preventDefault()
-    // TODO: Navigate to product detail page
-    console.log("Viewing product:", product.id)
+    navigate(`/product/${product.id}`)
   }
 
   if (viewMode === "list") {
