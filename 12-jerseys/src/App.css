@@ -5,6 +5,12 @@
   text-align: center;
 }
 
+/* styles.css */
+.my-box {
+  margin: 20px;
+  padding: 10px;
+}
+
 .logo {
   height: 6em;
   padding: 1.5em;

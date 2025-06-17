@@ -2,9 +2,23 @@
 
 import { useState, useEffect } from "react"
 import { useParams, useNavigate, Link } from "react-router-dom"
-import { ArrowLeft, ShoppingCart, Heart, Share2, Star, Truck, Shield, RotateCcw, Plus, Minus } from "lucide-react"
+import {
+  ArrowLeft,
+  ShoppingCart,
+  Heart,
+  Share2,
+  Star,
+  Truck,
+  Shield,
+  RotateCcw,
+  Plus,
+  Minus,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react"
 import { useCart } from "../context/CartContext"
 import LoadingSpinner from "../components/LoadingSpinner"
+import '../App.css';
 
 export default function ProductDetail() {
   const { id } = useParams()
@@ -20,8 +34,15 @@ export default function ProductDetail() {
   const [isLiked, setIsLiked] = useState(false)
   const [showSizeGuide, setShowSizeGuide] = useState(false)
 
+  // Navigation states
+  const [allProducts, setAllProducts] = useState([])
+  const [currentProductIndex, setCurrentProductIndex] = useState(-1)
+  const [nextProduct, setNextProduct] = useState(null)
+  const [prevProduct, setPrevProduct] = useState(null)
+  const [isTransitioning, setIsTransitioning] = useState(false)
+
   // МЕСТО ДЛЯ ВАШИХ ТОВАРОВ - замените этот массив на ваши данные
-  const mockProducts = [
+   const mockProducts = [
     {
       id: 1,
       name: "Manchester United Retro",
@@ -414,6 +435,7 @@ export default function ProductDetail() {
     },
   ]
 
+  // Load product and all products
   useEffect(() => {
     const fetchProduct = async () => {
       setLoading(true)
@@ -423,6 +445,9 @@ export default function ProductDetail() {
         // Simulate API call
         await new Promise((resolve) => setTimeout(resolve, 500))
 
+        // Load all products
+        setAllProducts(mockProducts)
+
         const foundProduct = mockProducts.find((p) => p.id === Number.parseInt(id))
 
         if (!foundProduct) {
@@ -430,7 +455,13 @@ export default function ProductDetail() {
         }
 
         setProduct(foundProduct)
+
+        // Find current product index
+        const productIndex = mockProducts.findIndex((p) => p.id === Number.parseInt(id))
+        setCurrentProductIndex(productIndex)
+
         setSelectedSize(foundProduct.sizes[2] || foundProduct.sizes[0]) // Default to M or first size
+        setSelectedImage(0) // Reset image selection
       } catch (err) {
         setError(err.message)
       } finally {
@@ -442,6 +473,54 @@ export default function ProductDetail() {
       fetchProduct()
     }
   }, [id])
+
+  // Calculate adjacent products
+  useEffect(() => {
+    if (allProducts.length > 0 && currentProductIndex >= 0) {
+      // Previous product
+      const prevIndex = currentProductIndex - 1
+      setPrevProduct(prevIndex >= 0 ? allProducts[prevIndex] : null)
+
+      // Next product
+      const nextIndex = currentProductIndex + 1
+      setNextProduct(nextIndex < allProducts.length ? allProducts[nextIndex] : null)
+    }
+  }, [allProducts, currentProductIndex])
+
+  // Navigation functions
+  const goToNextProduct = () => {
+    if (nextProduct) {
+      setIsTransitioning(true)
+      setTimeout(() => {
+        navigate(`/product/${nextProduct.id}`)
+        setIsTransitioning(false)
+      }, 150)
+    }
+  }
+
+  const goToPrevProduct = () => {
+    if (prevProduct) {
+      setIsTransitioning(true)
+      setTimeout(() => {
+        navigate(`/product/${prevProduct.id}`)
+        setIsTransitioning(false)
+      }, 150)
+    }
+  }
+
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyPress = (e) => {
+      if (e.key === "ArrowLeft" && prevProduct) {
+        goToPrevProduct()
+      } else if (e.key === "ArrowRight" && nextProduct) {
+        goToNextProduct()
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyPress)
+    return () => window.removeEventListener("keydown", handleKeyPress)
+  }, [prevProduct, nextProduct])
 
   const handleAddToCart = async () => {
     if (!selectedSize) {
@@ -476,6 +555,140 @@ export default function ProductDetail() {
       alert("Ссылка скопирована!")
     }
   }
+
+  // Product Navigation Component
+  const RelatedProducts = () => (
+    <div className="mt-16">
+      <h3 className="text-2xl font-bold text-gray-900 mb-6">Другие товары</h3>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Previous Product */}
+        {prevProduct && (
+          <div
+            onClick={goToPrevProduct}
+            className="group bg-white rounded-2xl shadow-sm border border-gray-100 p-6 cursor-pointer hover:shadow-lg transition-all"
+          >
+            <div className="flex items-center space-x-4">
+              <img
+                src={prevProduct.image || "/placeholder.svg?height=80&width=80"}
+                alt={prevProduct.name}
+                className="w-16 h-16 object-cover rounded-lg"
+              />
+              <div className="flex-1">
+                <div className="text-xs text-gray-500 mb-1">← Предыдущий товар</div>
+                <h4 className="font-bold text-gray-900 group-hover:text-red-600 transition-colors line-clamp-1">
+                  {prevProduct.name}
+                </h4>
+                <p className="text-red-600 font-bold">₸{prevProduct.price.toLocaleString()}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Next Product */}
+        {nextProduct && (
+          <div
+            onClick={goToNextProduct}
+            className="group bg-white rounded-2xl shadow-sm border border-gray-100 p-6 cursor-pointer hover:shadow-lg transition-all"
+          >
+            <div className="flex items-center space-x-4">
+              <div className="flex-1 text-right">
+                <div className="text-xs text-gray-500 mb-1">Следующий товар →</div>
+                <h4 className="font-bold text-gray-900 group-hover:text-red-600 transition-colors line-clamp-1">
+                  {nextProduct.name}
+                </h4>
+                <p className="text-red-600 font-bold">₸{nextProduct.price.toLocaleString()}</p>
+              </div>
+              <img
+                src={nextProduct.image || "/placeholder.svg?height=80&width=80"}
+                alt={nextProduct.name}
+                className="w-16 h-16 object-cover rounded-lg"
+              />
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+
+  // Quick Navigation Buttons
+  const QuickNavButtons = () => (
+    <div className="fixed right-6 top-1/2 transform -translate-y-1/2 z-40 flex flex-col space-y-2">
+      {/* Previous */}
+      {prevProduct && (
+        <button
+          onClick={goToPrevProduct}
+          disabled={isTransitioning}
+          className="group bg-white hover:bg-red-600 text-gray-600 hover:text-white p-3 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 disabled:opacity-50"
+          title={`Предыдущий: ${prevProduct.name}`}
+        >
+          <ChevronLeft size={20} />
+        </button>
+      )}
+
+      {/* Next */}
+      {nextProduct && (
+        <button
+          onClick={goToNextProduct}
+          disabled={isTransitioning}
+          className="group bg-white hover:bg-red-600 text-gray-600 hover:text-white p-3 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 disabled:opacity-50"
+          title={`Следующий: ${nextProduct.name}`}
+        >
+          <ChevronRight size={20} />
+        </button>
+      )}
+    </div>
+  )
+
+  // Related Products Component
+  const ProductNavigation = () => (
+    <div className="flex items-center justify-between bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-8">
+      {/* Previous Product */}
+      <button
+        onClick={goToPrevProduct}
+        disabled={!prevProduct || isTransitioning}
+        className={`flex items-center space-x-3 p-3 rounded-xl transition-all ${
+          prevProduct && !isTransitioning
+            ? "hover:bg-gray-50 text-gray-700 hover:text-red-600"
+            : "text-gray-400 cursor-not-allowed"
+        }`}
+      >
+        <ChevronLeft size={20} />
+        {prevProduct && (
+          <div className="text-left hidden sm:block">
+            <div className="text-xs text-gray-500">Предыдущий</div>
+            <div className="font-medium truncate max-w-32">{prevProduct.name}</div>
+          </div>
+        )}
+      </button>
+
+      {/* Product Counter */}
+      <div className="text-center">
+        <div className="text-sm text-gray-500">
+          {currentProductIndex + 1} из {allProducts.length}
+        </div>
+        <div className="text-xs text-gray-400">товаров</div>
+      </div>
+
+      {/* Next Product */}
+      <button
+        onClick={goToNextProduct}
+        disabled={!nextProduct || isTransitioning}
+        className={`flex items-center space-x-3 p-3 rounded-xl transition-all ${
+          nextProduct && !isTransitioning
+            ? "hover:bg-gray-50 text-gray-700 hover:text-red-600"
+            : "text-gray-400 cursor-not-allowed"
+        }`}
+      >
+        {nextProduct && (
+          <div className="text-right hidden sm:block">
+            <div className="text-xs text-gray-500">Следующий</div>
+            <div className="font-medium truncate max-w-32">{nextProduct.name}</div>
+          </div>
+        )}
+        <ChevronRight size={20} />
+      </button>
+    </div>
+  )
 
   if (loading) {
     return (
@@ -519,6 +732,18 @@ export default function ProductDetail() {
           </button>
         </div>
 
+        {/* Product Navigation */}
+        <RelatedProducts />
+        <div className="my-box"></div>
+        
+
+        {/* Transition Overlay */}
+        {isTransitioning && (
+          <div className="fixed inset-0 bg-white bg-opacity-75 flex items-center justify-center z-50">
+            <LoadingSpinner size="lg" />
+          </div>
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
           {/* Product Images */}
           <div className="space-y-4">
@@ -527,7 +752,7 @@ export default function ProductDetail() {
               <img
                 src={product.images?.[selectedImage] || product.image || "/placeholder.svg?height=600&width=600"}
                 alt={product.name}
-                className="w-full h-96 lg:h-[700px] object-cover"
+                className="w-full h-96 lg:h-[500px] object-cover"
               />
             </div>
 
@@ -756,6 +981,21 @@ export default function ProductDetail() {
               )}
             </div>
           </div>
+        </div>
+
+        {/* Related Products */}
+        <ProductNavigation />
+      </div>
+
+      {/* Quick Navigation Buttons */}
+      <QuickNavButtons />
+
+      {/* Keyboard Navigation Hint */}
+      <div className="fixed bottom-6 left-6 bg-black bg-opacity-75 text-white px-4 py-2 rounded-lg text-sm opacity-50 hover:opacity-100 transition-opacity">
+        <div className="flex items-center space-x-2">
+          <span>Навигация:</span>
+          <kbd className="bg-white bg-opacity-20 px-2 py-1 rounded text-xs">←</kbd>
+          <kbd className="bg-white bg-opacity-20 px-2 py-1 rounded text-xs">→</kbd>
         </div>
       </div>
     </main>
