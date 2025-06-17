@@ -794,7 +794,7 @@ export default function ProductDetail() {
               <img
                 src={product.images?.[selectedImage] || product.image || "/placeholder.svg?height=600&width=600"}
                 alt={product.name}
-                className="w-full h-96 lg:h-[900px] object-cover"
+                className="w-full h-96 lg:h-[700px] object-cover"
               />
             </div>
 
