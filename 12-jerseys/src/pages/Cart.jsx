@@ -9,7 +9,7 @@ import { useToast } from "../context/ToastContext"
 
 export default function Cart() {
   const { cartItems, updateQuantity, removeFromCart, getCartTotal, clearCart } = useCart()
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, addOrder } = useAuth()
   const { showSuccess, showError } = useToast()
   const [isCheckingOut, setIsCheckingOut] = useState(false)
 
@@ -48,12 +48,31 @@ export default function Cart() {
 
     setIsCheckingOut(true)
 
-    // Simulate checkout process
-    setTimeout(() => {
-      showSuccess("Заказ оформлен! Спасибо за покупку!", "Заказ успешно создан")
+    try {
+      // Simulate checkout process
+      await new Promise((resolve) => setTimeout(resolve, 2000))
+
+      // Create order data
+      const orderData = {
+        total: getCartTotal(),
+        items: cartItems,
+        deliveryAddress: "Не указан", // You can add address form later
+        paymentMethod: "Наличными при получении",
+      }
+
+      // Add order to user's history
+      const newOrder = addOrder(orderData)
+
+      // Clear cart after successful order
       clearCart()
+
+      // Show success message
+      showSuccess(`Заказ ${newOrder.id} успешно оформлен!`, "Спасибо за покупку! Мы свяжемся с вами для подтверждения.")
+    } catch (error) {
+      showError("Ошибка при оформлении заказа. Попробуйте еще раз.")
+    } finally {
       setIsCheckingOut(false)
-    }, 2000)
+    }
   }
 
   if (cartItems.length === 0) {
@@ -216,20 +235,13 @@ export default function Cart() {
                   </p>
                 </div>
               ) : (
-                <button
-                  onClick={handleCheckout}
-                  disabled={isCheckingOut}
-                  className="w-full bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white py-3 rounded-xl font-bold transition-colors flex items-center justify-center space-x-2"
+                <Link
+                  to="/checkout"
+                  className="w-full bg-red-600 hover:bg-red-700 text-white py-3 rounded-xl font-bold transition-colors flex items-center justify-center space-x-2"
                 >
-                  {isCheckingOut ? (
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                  ) : (
-                    <>
-                      <CreditCard size={20} />
-                      <span>Оформить заказ</span>
-                    </>
-                  )}
-                </button>
+                  <CreditCard size={20} />
+                  <span>Оформить заказ</span>
+                </Link>
               )}
 
               <div className="mt-4 text-center">

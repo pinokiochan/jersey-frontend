@@ -51,32 +51,18 @@ export const AuthProvider = ({ children }) => {
         id: Date.now(),
         email,
         name: email.split("@")[0].charAt(0).toUpperCase() + email.split("@")[0].slice(1),
+        firstName: "",
+        lastName: "",
+        phone: "",
         avatar: `https://ui-avatars.com/api/?name=${email.split("@")[0]}&background=dc2626&color=fff`,
         joinDate: new Date().toISOString(),
+        addresses: [], // Empty addresses array
         preferences: {
           notifications: true,
           newsletter: true,
           sms: false,
         },
-        orders: [
-          {
-            id: "ORD-001",
-            date: "2024-01-15",
-            status: "Доставлен",
-            total: 25000,
-            items: [{ name: "Manchester United Retro", size: "L", quantity: 1, price: 25000 }],
-          },
-          {
-            id: "ORD-002",
-            date: "2024-01-10",
-            status: "В пути",
-            total: 45000,
-            items: [
-              { name: "Arsenal Vintage", size: "M", quantity: 1, price: 22000 },
-              { name: "Liverpool Classic", size: "L", quantity: 1, price: 23000 },
-            ],
-          },
-        ],
+        orders: [], // Start with empty orders array
       }
 
       const token = "mock-jwt-token-" + Date.now()
@@ -106,14 +92,18 @@ export const AuthProvider = ({ children }) => {
         id: Date.now(),
         email: userData.email,
         name: userData.name,
+        firstName: "",
+        lastName: "",
+        phone: "",
         avatar: `https://ui-avatars.com/api/?name=${userData.name}&background=dc2626&color=fff`,
         joinDate: new Date().toISOString(),
+        addresses: [], // Empty addresses array
         preferences: {
           notifications: true,
           newsletter: true,
           sms: false,
         },
-        orders: [],
+        orders: [], // Start with empty orders array
       }
 
       const token = "mock-jwt-token-" + Date.now()
@@ -146,6 +136,76 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem("user", JSON.stringify(updatedUser))
   }
 
+  // Add order to user's order history
+  const addOrder = (orderData) => {
+    if (!user) return
+
+    const newOrder = {
+      id: `ORD-${Date.now()}`,
+      date: new Date().toISOString(),
+      status: "Обрабатывается",
+      total: orderData.total,
+      items: orderData.items.map((item) => ({
+        name: item.name,
+        team: item.team,
+        size: item.selectedSize,
+        quantity: item.quantity,
+        price: item.price,
+        image: item.image,
+      })),
+      customerInfo: orderData.customerInfo || {
+        firstName: user.firstName || "",
+        lastName: user.lastName || "",
+        email: user.email || "",
+        phone: user.phone || "",
+      },
+      deliveryAddress: orderData.deliveryAddress || "Не указан",
+      paymentMethod: orderData.paymentMethod || "Наличными при получении",
+      deliveryNotes: orderData.deliveryNotes || "",
+      promoCode: orderData.promoCode || "",
+    }
+
+    const updatedUser = {
+      ...user,
+      orders: [newOrder, ...(user.orders || [])],
+    }
+
+    setUser(updatedUser)
+    localStorage.setItem("user", JSON.stringify(updatedUser))
+
+    return newOrder
+  }
+
+  // Update order status
+  const updateOrderStatus = (orderId, newStatus) => {
+    if (!user || !user.orders) return
+
+    const updatedOrders = user.orders.map((order) => (order.id === orderId ? { ...order, status: newStatus } : order))
+
+    const updatedUser = {
+      ...user,
+      orders: updatedOrders,
+    }
+
+    setUser(updatedUser)
+    localStorage.setItem("user", JSON.stringify(updatedUser))
+  }
+
+  // Delete address
+  const deleteAddress = (addressId) => {
+    if (!user || !user.addresses) return
+
+    const updatedAddresses = user.addresses.filter((addr) => addr.id !== addressId)
+
+    const updatedUser = {
+      ...user,
+      addresses: updatedAddresses,
+    }
+
+    setUser(updatedUser)
+    localStorage.setItem("user", JSON.stringify(updatedUser))
+  }
+
   const clearError = () => setError(null)
 
   const value = {
@@ -154,6 +214,9 @@ export const AuthProvider = ({ children }) => {
     register,
     logout,
     updateUser,
+    addOrder,
+    updateOrderStatus,
+    deleteAddress,
     loading,
     error,
     clearError,
