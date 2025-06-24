@@ -1,74 +1,56 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import ApiService from "../services/api"
+import dataService from "../services/dataService"
 
-export const useProducts = (filters = {}) => {
+export const useProducts = () => {
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [total, setTotal] = useState(0)
 
-  const fetchProducts = async (newFilters = {}) => {
+  useEffect(() => {
+    loadProducts()
+  }, [])
+
+  const loadProducts = async () => {
     try {
       setLoading(true)
-      setError(null)
+      // Simulate API delay
+      await new Promise((resolve) => setTimeout(resolve, 500))
 
-      const params = { ...filters, ...newFilters }
-      const response = await ApiService.getProducts(params)
-
-      setProducts(response.products || response)
-      setTotal(response.total || response.length)
+      const loadedProducts = dataService.getProducts()
+      setProducts(loadedProducts)
     } catch (err) {
       setError(err.message)
-      console.error("Error fetching products:", err)
     } finally {
       setLoading(false)
     }
   }
 
-  useEffect(() => {
-    fetchProducts()
-  }, [])
+  const getProduct = (id) => {
+    return dataService.getProduct(id)
+  }
 
-  const refetch = (newFilters = {}) => {
-    fetchProducts(newFilters)
+  const searchProducts = (query, filters = {}) => {
+    return dataService.searchProducts(query, filters)
+  }
+
+  const getFeaturedProducts = () => {
+    return products.filter((product) => product.featured && product.status === "active")
+  }
+
+  const getProductsByCategory = (category) => {
+    return products.filter((product) => product.category === category && product.status === "active")
   }
 
   return {
-    products,
+    products: products.filter((p) => p.status === "active"), // Only show active products to customers
     loading,
     error,
-    total,
-    refetch,
+    getProduct,
+    searchProducts,
+    getFeaturedProducts,
+    getProductsByCategory,
+    refetch: loadProducts,
   }
-}
-
-export const useProduct = (id) => {
-  const [product, setProduct] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
-
-  useEffect(() => {
-    const fetchProduct = async () => {
-      try {
-        setLoading(true)
-        setError(null)
-
-        const response = await ApiService.getProduct(id)
-        setProduct(response)
-      } catch (err) {
-        setError(err.message)
-        console.error("Error fetching product:", err)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    if (id) {
-      fetchProduct()
-    }
-  }, [id])
-
-  return { product, loading, error }
 }

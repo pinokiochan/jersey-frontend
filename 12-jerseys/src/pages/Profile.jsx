@@ -1,17 +1,26 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { User, Mail, Calendar, Package, Settings, Edit3, Save, X, Eye, Truck, CheckCircle, Clock } from "lucide-react"
 import { useAuth } from "../context/AuthContext"
 
 export default function Profile() {
-  const { user, updateUser, updateOrderStatus } = useAuth()
+  const { user, updateUser, updateOrderStatus, getUserOrders } = useAuth()
   const [activeTab, setActiveTab] = useState("profile")
   const [isEditing, setIsEditing] = useState(false)
   const [editForm, setEditForm] = useState({
     name: user?.name || "",
     email: user?.email || "",
   })
+  const [orders, setOrders] = useState([])
+
+  // Load user orders
+  useEffect(() => {
+    if (user) {
+      const userOrders = getUserOrders()
+      setOrders(userOrders)
+    }
+  }, [user, getUserOrders])
 
   const handleEditSubmit = (e) => {
     e.preventDefault()
@@ -29,26 +38,47 @@ export default function Profile() {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case "Доставлен":
+      case "completed":
         return "bg-green-100 text-green-800"
-      case "В пути":
+      case "shipped":
         return "bg-blue-100 text-blue-800"
-      case "Обрабатывается":
+      case "processing":
         return "bg-yellow-100 text-yellow-800"
-      case "Отменен":
+      case "pending":
+        return "bg-orange-100 text-orange-800"
+      case "cancelled":
         return "bg-red-100 text-red-800"
       default:
         return "bg-gray-100 text-gray-800"
     }
   }
 
+  const getStatusText = (status) => {
+    switch (status) {
+      case "completed":
+        return "Доставлен"
+      case "shipped":
+        return "В пути"
+      case "processing":
+        return "Обрабатывается"
+      case "pending":
+        return "Ожидает"
+      case "cancelled":
+        return "Отменен"
+      default:
+        return status
+    }
+  }
+
   const getStatusIcon = (status) => {
     switch (status) {
-      case "Доставлен":
+      case "completed":
         return <CheckCircle size={16} />
-      case "В пути":
+      case "shipped":
         return <Truck size={16} />
-      case "Обрабатывается":
+      case "processing":
+        return <Clock size={16} />
+      case "pending":
         return <Clock size={16} />
       default:
         return <Package size={16} />
@@ -60,9 +90,6 @@ export default function Profile() {
     { id: "orders", label: "Заказы", icon: Package },
     { id: "settings", label: "Настройки", icon: Settings },
   ]
-
-  // Get user orders (from user object or empty array)
-  const orders = user?.orders || []
 
   return (
     <main className="min-h-screen bg-gray-50 py-12 px-6">
@@ -92,15 +119,17 @@ export default function Profile() {
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-left transition-colors ${activeTab === tab.id ? "bg-red-600 text-white" : "text-gray-700 hover:bg-gray-50"
-                      }`}
+                    className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-left transition-colors ${
+                      activeTab === tab.id ? "bg-red-600 text-white" : "text-gray-700 hover:bg-gray-50"
+                    }`}
                   >
                     <tab.icon size={20} />
                     <span className="font-medium">{tab.label}</span>
                     {tab.id === "orders" && orders.length > 0 && (
                       <span
-                        className={`ml-auto text-xs px-2 py-1 rounded-full ${activeTab === tab.id ? "bg-white bg-opacity-20" : "bg-red-100 text-red-600"
-                          }`}
+                        className={`ml-auto text-xs px-2 py-1 rounded-full ${
+                          activeTab === tab.id ? "bg-white bg-opacity-20" : "bg-red-100 text-red-600"
+                        }`}
                       >
                         {orders.length}
                       </span>
@@ -265,16 +294,16 @@ export default function Profile() {
                                 <span
                                   className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(order.status)}`}
                                 >
-                                  {order.status}
+                                  {getStatusText(order.status)}
                                 </span>
                               </div>
-                              <p className="text-xl font-black text-red-600">₸{order.total.toLocaleString()}</p>
+                              <p className="text-xl font-black text-red-600">₽{order.total.toLocaleString()}</p>
                             </div>
                           </div>
 
                           {/* Order Items */}
                           <div className="space-y-3 mb-4">
-                            {order.items.map((item, index) => (
+                            {(order.items || []).map((item, index) => (
                               <div
                                 key={index}
                                 className="flex items-center justify-between py-3 px-4 bg-gray-50 rounded-lg"
@@ -290,11 +319,13 @@ export default function Profile() {
                                   <div>
                                     <span className="font-medium text-gray-900">{item.name}</span>
                                     <div className="text-sm text-gray-600">
-                                      {item.team} • Размер: {item.size} • Кол-во: {item.quantity}
+                                      {item.team && `${item.team} • `}
+                                      {item.size && `Размер: ${item.size} • `}
+                                      Кол-во: {item.quantity}
                                     </div>
                                   </div>
                                 </div>
-                                <span className="font-semibold text-gray-900">₸{item.price.toLocaleString()}</span>
+                                <span className="font-semibold text-gray-900">₽{item.price.toLocaleString()}</span>
                               </div>
                             ))}
                           </div>
@@ -304,11 +335,11 @@ export default function Profile() {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                               <div>
                                 <span className="text-gray-600">Адрес доставки:</span>
-                                <p className="font-medium">{order.deliveryAddress}</p>
+                                <p className="font-medium">{order.deliveryAddress || "Не указан"}</p>
                               </div>
                               <div>
                                 <span className="text-gray-600">Способ оплаты:</span>
-                                <p className="font-medium">{order.paymentMethod}</p>
+                                <p className="font-medium">{order.paymentMethod || "Не указан"}</p>
                               </div>
                             </div>
                           </div>
@@ -316,9 +347,9 @@ export default function Profile() {
                           {/* Order Actions */}
                           <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-200">
                             <div className="flex space-x-2">
-                              {order.status === "Обрабатывается" && (
+                              {order.status === "pending" && (
                                 <button
-                                  onClick={() => updateOrderStatus(order.id, "Отменен")}
+                                  onClick={() => updateOrderStatus(order.id, "cancelled")}
                                   className="text-red-600 hover:text-red-700 text-sm font-medium"
                                 >
                                   Отменить заказ

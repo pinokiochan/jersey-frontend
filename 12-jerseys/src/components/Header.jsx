@@ -1,6 +1,6 @@
 "use client"
 
-import { ShoppingCart, User, Menu, X, LogOut, Settings, Package, Search, Heart } from "lucide-react"
+import { ShoppingCart, User, Menu, X, LogOut, Settings, Package, Search, Heart, Shield } from "lucide-react"
 import { useState, useRef, useEffect } from "react"
 import { Link, useLocation, useNavigate } from "react-router-dom"
 import { useAuth } from "../context/AuthContext"
@@ -225,6 +225,18 @@ export default function Header() {
                       <span>Настройки</span>
                     </Link>
 
+                    {/* Admin Panel - только для админов */}
+                    {user?.isAdmin && (
+                      <Link
+                        to="/admin"
+                        className="flex items-center space-x-3 px-4 py-3 text-gray-700 hover:bg-red-50 hover:text-red-600 transition-colors border-t border-gray-100"
+                        onClick={() => setIsUserMenuOpen(false)}
+                      >
+                        <Shield size={16} className="text-red-600" />
+                        <span className="font-medium">Админ панель</span>
+                      </Link>
+                    )}
+
                     <div className="border-t border-gray-100 mt-2 pt-2">
                       <button
                         onClick={handleLogout}
@@ -240,7 +252,7 @@ export default function Header() {
             ) : (
               <Link
                 to="/login"
-                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-red-600 focus:ring-offset-2"
+                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-2xl font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-red-600 focus:ring-offset-2"
               >
                 Войти
               </Link>

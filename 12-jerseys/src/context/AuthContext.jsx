@@ -1,6 +1,7 @@
 "use client"
 
 import { createContext, useContext, useState, useEffect } from "react"
+import dataService from "../services/dataService"
 
 const AuthContext = createContext()
 
@@ -17,26 +18,32 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
+  // Helper function to save user data
+  const saveUserData = (userData) => {
+    setUser(userData)
+    localStorage.setItem("user", JSON.stringify(userData))
+    localStorage.setItem("authToken", `mock-jwt-token-${Date.now()}`)
+  }
+
   useEffect(() => {
-    const initializeAuth = async () => {
-      try {
-        const savedUser = localStorage.getItem("user")
-        const token = localStorage.getItem("authToken")
-
-        if (savedUser && token) {
-          const parsedUser = JSON.parse(savedUser)
-          setUser(parsedUser)
+    try {
+      const savedUser = localStorage.getItem("user")
+      const token = localStorage.getItem("authToken")
+      if (savedUser && token) {
+        const userData = JSON.parse(savedUser)
+        setUser(userData)
+        // Update last login time
+        if (userData.id) {
+          dataService.updateUserLogin(userData.id)
         }
-      } catch (error) {
-        console.error("Auth initialization error:", error)
-        localStorage.removeItem("user")
-        localStorage.removeItem("authToken")
-      } finally {
-        setLoading(false)
       }
+    } catch (error) {
+      console.error("Auth initialization error:", error)
+      localStorage.removeItem("user")
+      localStorage.removeItem("authToken")
+    } finally {
+      setLoading(false)
     }
-
-    initializeAuth()
   }, [])
 
   const login = async (email, password) => {
@@ -47,31 +54,28 @@ export const AuthProvider = ({ children }) => {
       // Simulate API call
       await new Promise((resolve) => setTimeout(resolve, 1000))
 
-      const mockUser = {
-        id: Date.now(),
-        email,
-        name: email.split("@")[0].charAt(0).toUpperCase() + email.split("@")[0].slice(1),
-        firstName: "",
-        lastName: "",
-        phone: "",
-        avatar: `https://ui-avatars.com/api/?name=${email.split("@")[0]}&background=dc2626&color=fff`,
-        joinDate: new Date().toISOString(),
-        addresses: [], // Empty addresses array
-        preferences: {
-          notifications: true,
-          newsletter: true,
-          sms: false,
-        },
-        orders: [], // Start with empty orders array
+      // Check if user exists in dataService
+      const users = dataService.getUsers()
+      let existingUser = users.find((u) => u.email === email)
+
+      if (!existingUser) {
+        // Create new user if doesn't exist
+        const name = email.split("@")[0].charAt(0).toUpperCase() + email.split("@")[0].slice(1)
+        existingUser = dataService.registerUser({
+          name,
+          email,
+          phone: "",
+          isAdmin: email.includes("admin"),
+        })
+      } else {
+        // Update last login
+        dataService.updateUserLogin(existingUser.id)
+        // Refresh user data
+        existingUser = dataService.getUser(existingUser.id)
       }
 
-      const token = "mock-jwt-token-" + Date.now()
-
-      setUser(mockUser)
-      localStorage.setItem("user", JSON.stringify(mockUser))
-      localStorage.setItem("authToken", token)
-
-      return { success: true, user: mockUser }
+      saveUserData(existingUser)
+      return { success: true, user: existingUser }
     } catch (error) {
       const errorMessage = "Неверный email или пароль"
       setError(errorMessage)
@@ -88,31 +92,14 @@ export const AuthProvider = ({ children }) => {
 
       await new Promise((resolve) => setTimeout(resolve, 1000))
 
-      const mockUser = {
-        id: Date.now(),
-        email: userData.email,
-        name: userData.name,
-        firstName: "",
-        lastName: "",
-        phone: "",
-        avatar: `https://ui-avatars.com/api/?name=${userData.name}&background=dc2626&color=fff`,
-        joinDate: new Date().toISOString(),
-        addresses: [], // Empty addresses array
-        preferences: {
-          notifications: true,
-          newsletter: true,
-          sms: false,
-        },
-        orders: [], // Start with empty orders array
-      }
+      // Register user through dataService
+      const newUser = dataService.registerUser({
+        ...userData,
+        isAdmin: userData.email.includes("admin"),
+      })
 
-      const token = "mock-jwt-token-" + Date.now()
-
-      setUser(mockUser)
-      localStorage.setItem("user", JSON.stringify(mockUser))
-      localStorage.setItem("authToken", token)
-
-      return { success: true, user: mockUser }
+      saveUserData(newUser)
+      return { success: true, user: newUser }
     } catch (error) {
       const errorMessage = "Ошибка при регистрации"
       setError(errorMessage)
@@ -130,83 +117,79 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem("cart")
   }
 
-  const updateUser = (userData) => {
-    const updatedUser = { ...user, ...userData }
-    setUser(updatedUser)
-    localStorage.setItem("user", JSON.stringify(updatedUser))
-  }
-
-  // Add order to user's order history
-  const addOrder = (orderData) => {
+  const updateUser = (updates) => {
     if (!user) return
 
-    const newOrder = {
-      id: `ORD-${Date.now()}`,
-      date: new Date().toISOString(),
-      status: "Обрабатывается",
-      total: orderData.total,
-      items: orderData.items.map((item) => ({
-        name: item.name,
-        team: item.team,
-        size: item.selectedSize,
-        quantity: item.quantity,
-        price: item.price,
-        image: item.image,
-      })),
-      customerInfo: orderData.customerInfo || {
-        firstName: user.firstName || "",
-        lastName: user.lastName || "",
-        email: user.email || "",
-        phone: user.phone || "",
+    // Update in dataService
+    const updatedUser = dataService.updateUser(user.id, updates)
+    if (updatedUser) {
+      setUser(updatedUser)
+      localStorage.setItem("user", JSON.stringify(updatedUser))
+    }
+  }
+
+  const addOrder = (orderData) => {
+    if (!user) return null
+
+    // Add order through dataService
+    const newOrder = dataService.addOrderFromCheckout(
+      {
+        ...orderData,
+        customerName: user.name,
+        customerEmail: user.email,
+        customerPhone: user.phone,
+        customerInfo: {
+          firstName: user.firstName || user.name.split(" ")[0],
+          lastName: user.lastName || user.name.split(" ")[1] || "",
+          email: user.email,
+          phone: user.phone,
+        },
       },
-      deliveryAddress: orderData.deliveryAddress || "Не указан",
-      paymentMethod: orderData.paymentMethod || "Наличными при получении",
-      deliveryNotes: orderData.deliveryNotes || "",
-      promoCode: orderData.promoCode || "",
-    }
+      user.id,
+    )
 
-    const updatedUser = {
-      ...user,
-      orders: [newOrder, ...(user.orders || [])],
-    }
+    // Update user data with new order - refresh from dataService
+    const updatedUser = dataService.getUser(user.id)
+    if (updatedUser) {
+      // Add the new order to user's orders array
+      const userOrders = dataService.getOrders().filter((order) => order.userId === user.id)
+      updatedUser.orders = userOrders
 
-    setUser(updatedUser)
-    localStorage.setItem("user", JSON.stringify(updatedUser))
+      setUser(updatedUser)
+      localStorage.setItem("user", JSON.stringify(updatedUser))
+    }
 
     return newOrder
   }
 
-  // Update order status
   const updateOrderStatus = (orderId, newStatus) => {
-    if (!user || !user.orders) return
+    dataService.updateOrder(orderId, { status: newStatus })
 
-    const updatedOrders = user.orders.map((order) => (order.id === orderId ? { ...order, status: newStatus } : order))
+    // Refresh user data to get updated orders
+    if (user) {
+      const updatedUser = dataService.getUser(user.id)
+      if (updatedUser) {
+        const userOrders = dataService.getOrders().filter((order) => order.userId === user.id)
+        updatedUser.orders = userOrders
 
-    const updatedUser = {
-      ...user,
-      orders: updatedOrders,
+        setUser(updatedUser)
+        localStorage.setItem("user", JSON.stringify(updatedUser))
+      }
     }
-
-    setUser(updatedUser)
-    localStorage.setItem("user", JSON.stringify(updatedUser))
   }
 
-  // Delete address
   const deleteAddress = (addressId) => {
-    if (!user || !user.addresses) return
+    if (!user?.addresses) return
 
     const updatedAddresses = user.addresses.filter((addr) => addr.id !== addressId)
-
-    const updatedUser = {
-      ...user,
-      addresses: updatedAddresses,
-    }
-
-    setUser(updatedUser)
-    localStorage.setItem("user", JSON.stringify(updatedUser))
+    updateUser({ addresses: updatedAddresses })
   }
 
-  const clearError = () => setError(null)
+  // Get user orders from dataService
+  const getUserOrders = () => {
+    if (!user) return []
+    return dataService.getOrders().filter((order) => order.userId === user.id)
+  }
 
   const value = {
     user,
@@ -217,9 +200,10 @@ export const AuthProvider = ({ children }) => {
     addOrder,
     updateOrderStatus,
     deleteAddress,
+    getUserOrders,
     loading,
     error,
-    clearError,
+    clearError: () => setError(null),
     isAuthenticated: !!user,
   }
 

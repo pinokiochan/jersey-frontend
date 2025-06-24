@@ -5,6 +5,7 @@ import { useSearchParams } from "react-router-dom"
 import { Search, Grid, List, SlidersHorizontal, ChevronLeft, ChevronRight } from "lucide-react"
 import ProductCard from "../components/ProductCard"
 import LoadingSpinner from "../components/LoadingSpinner"
+import dataService from "../services/dataService"
 
 export default function Catalog() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -26,400 +27,6 @@ export default function Catalog() {
   const [priceRange, setPriceRange] = useState({ min: "", max: "" })
   const [sortBy, setSortBy] = useState("name")
 
-  // МЕСТО ДЛЯ ВАШИХ ТОВАРОВ - замените этот массив на ваши данные
-  const mockProducts = [
-    {
-      id: 1,
-      name: "Manchester United Retro",
-      team: "Manchester United",
-      color: "Красный",
-      price: 25000,
-      image: "/assets/manu.png?height=300&width=300",
-      description: "Классическое ретро джерси Manchester United в современной интерпретации с премиальными материалами",
-      stock: 15,
-      category: "retro",
-      sizes: ["XS", "S", "M", "L", "XL", "XXL"],
-      featured: true,
-    },
-    {
-      id: 2,
-      name: "Arsenal Vintage",
-      team: "Arsenal",
-      color: "Красный",
-      price: 22000,
-      image: "/assets/arsenal.png?height=300&width=300",
-      description: "Винтажное джерси Arsenal с уникальным дизайном и аутентичными деталями",
-      stock: 8,
-      category: "vintage",
-      sizes: ["S", "M", "L", "XL"],
-      featured: true,
-    },
-    {
-      id: 3,
-      name: "Liverpool Classic",
-      team: "Liverpool",
-      color: "Красный",
-      price: 23000,
-      image: "/assets/liverpool.png?height=300&width=300",
-      description: "Классическое джерси Liverpool для истинных фанатов с современным кроем",
-      stock: 12,
-      category: "classic",
-      sizes: ["XS", "S", "M", "L", "XL"],
-      featured: false,
-    },
-    {
-      id: 4,
-      name: "Chelsea Modern",
-      team: "Chelsea",
-      color: "Синий",
-      price: 24000,
-      image: "/assets/chelsea.png?height=300&width=300",
-      description: "Современное джерси Chelsea с инновационным дизайном и технологичными материалами",
-      stock: 20,
-      category: "modern",
-      sizes: ["S", "M", "L", "XL", "XXL"],
-      featured: true,
-    },
-    {
-      id: 5,
-      name: "Barcelona Heritage",
-      team: "Barcelona",
-      color: "Синий",
-      price: 26000,
-      image: "/assets/barcelona.jpg?height=300&width=300",
-      description: "Наследие Barcelona в современном исполнении с традиционными цветами клуба",
-      stock: 5,
-      category: "heritage",
-      sizes: ["M", "L", "XL"],
-      featured: true,
-    },
-    {
-      id: 6,
-      name: "Real Madrid Elite",
-      team: "Real Madrid",
-      color: "Белый",
-      price: 28000,
-      image: "/assets/realmadrid.png?height=300&width=300",
-      description: "Элитное джерси Real Madrid для особых случаев с премиальной отделкой",
-      stock: 10,
-      category: "elite",
-      sizes: ["S", "M", "L", "XL"],
-      featured: false,
-    },
-    {
-      id: 7,
-      name: "PSG Limited Edition",
-      team: "PSG",
-      color: "Синий",
-      price: 30000,
-      image: "/assets/psg.png?height=300&width=300",
-      description: "Лимитированная коллекция PSG с эксклюзивным дизайном",
-      stock: 3,
-      category: "limited",
-      sizes: ["M", "L", "XL"],
-      featured: true,
-    },
-    {
-      id: 8,
-      name: "Bayern Munich Classic",
-      team: "Bayern Munich",
-      color: "Красный",
-      price: 24500,
-      image: "/assets/bayernmunchen.png?height=300&width=300",
-      description: "Классическое джерси Bayern Munich с традиционным баварским дизайном",
-      stock: 18,
-      category: "classic",
-      sizes: ["XS", "S", "M", "L", "XL", "XXL"],
-      featured: false,
-    },
-    {
-      id: 9,
-      name: "Atletico Madrid Classic",
-      team: "Atletico Madrid",
-      color: "Красный",
-      price: 21500,
-      image: "/assets/atleticom.png?height=300&width=300",
-      description: "Классическое джерси Atletico Madrid с традиционным баварским дизайном",
-      stock: 14,
-      category: "classic",
-      sizes: ["XS", "S", "M", "L", "XL", "XXL"],
-      featured: false,
-    },
-    {
-      id: 10,
-      name: "Japan Vintage",
-      team: "Japan",
-      color: "Красный",
-      price: 26500,
-      image: "/assets/japan.jpg?height=300&width=300",
-      description: "Винтажное джерси Japan с уникальным дизайном и аутентичными деталями",
-      stock: 28,
-      category: "vintage",
-      sizes: ["XS", "S", "M", "L", "XL", "XXL"],
-      featured: false,
-    },
-    {
-      id: 11,
-      name: "Milan Retro",
-      team: "Milan",
-      color: "Красный",
-      price: 20500,
-      image: "/assets/milan.png?height=300&width=300",
-      description: "Классическое ретро джерси Milan в современной интерпретации с премиальными материалами",
-      stock: 18,
-      category: "retro",
-      sizes: ["XS", "S", "M", "L", "XL", "XXL"],
-      featured: false,
-    },
-    {
-      id: 12,
-      name: "Italy Retro",
-      team: "Italy",
-      color: "White",
-      price: 28500,
-      image: "/assets/italy.png?height=300&width=300",
-      description: "Классическое ретро джерси Italy в современной интерпретации с премиальными материалами",
-      stock: 8,
-      category: "retro",
-      sizes: ["XS", "S", "M", "L", "XL", "XXL"],
-      featured: false,
-    },
-    {
-      id: 13,
-      name: "Germany Classic",
-      team: "Germany",
-      color: "White",
-      price: 24500,
-      image: "/assets/germany.png?height=300&width=300",
-      description: "Классическое джерси Germany с традиционным баварским дизайном",
-      stock: 20,
-      category: "classic",
-      sizes: ["XS", "S", "M", "L", "XL", "XXL"],
-      featured: false,
-    },
-    {
-      id: 14,
-      name: "Manchester City Modern",
-      team: "Manchester City",
-      color: "White",
-      price: 27500,
-      image: "/assets/mancity.jpg?height=300&width=300",
-      description: "Современное джерси Manchester City с инновационным дизайном и технологичными материалами",
-      stock: 4,
-      category: "modern",
-      sizes: ["XS", "S", "M", "L", "XL", "XXL"],
-      featured: false,
-    },
-    {
-      id: 15,
-      name: "Borussia Dortmund Classic",
-      team: "Borussia Dortmund",
-      color: "Yellow",
-      price: 29500,
-      image: "/assets/borussia.jpg?height=300&width=300",
-      description: "Классическое джерси Borussia Dortmund с традиционным баварским дизайном",
-      stock: 1,
-      category: "classic",
-      sizes: ["XS", "S", "M", "L", "XL", "XXL"],
-      featured: false,
-    },
-    {
-      id: 16,
-      name: "Kairat Elite",
-      team: "Kairat",
-      color: "Yellow",
-      price: 25500,
-      image: "/assets/girona.png?height=300&width=300",
-      description: "Элитное джерси Kairat для особых случаев с премиальной отделкой",
-      stock: 0,
-      category: "elite",
-      sizes: ["XS", "S", "M", "L", "XL", "XXL"],
-      featured: false,
-    },
-    {
-      id: 17,
-      name: "Juventus Vintage",
-      team: "Juventus",
-      color: "Black",
-      price: 22500,
-      image: "/assets/juventus.jpg?height=300&width=300",
-      description: "Винтажное джерси Juventus с уникальным дизайном и аутентичными деталями",
-      stock: 3,
-      category: "vintage",
-      sizes: ["XS", "S", "M", "L", "XL", "XXL"],
-      featured: false,
-    },
-    {
-      id: 18,
-      name: "Inter Heritage",
-      team: "Inter",
-      color: "White",
-      price: 21500,
-      image: "/assets/inter.jpg?height=300&width=300",
-      description: "Наследие Inter в современном исполнении с традиционными цветами клуба",
-      stock: 5,
-      category: "heritage",
-      sizes: ["XS", "S", "M", "L", "XL", "XXL"],
-      featured: false,
-    },
-    {
-      id: 19,
-      name: "Tottenham hotspur Classic",
-      team: "Tottenham hotspur",
-      color: "White",
-      price: 27500,
-      image: "/assets/tottenham.png?height=300&width=300",
-      description: "Классическое джерси Tottenham hotspur с традиционным баварским дизайном",
-      stock: 11,
-      category: "classic",
-      sizes: ["XS", "S", "M", "L", "XL", "XXL"],
-      featured: false,
-    },
-    {
-      id: 20,
-      name: "Portugal Elite",
-      team: "Portugal",
-      color: "Red",
-      price: 24500,
-      image: "/assets/portugal.png?height=300&width=300",
-      description: "Элитное джерси Portugal для особых случаев с премиальной отделкой",
-      stock: 10,
-      category: "elite",
-      sizes: ["XS", "S", "M", "L", "XL", "XXL"],
-      featured: false,
-    },
-    {
-      id: 21,
-      name: "Argentina Heritage",
-      team: "Argentina",
-      color: "Blue",
-      price: 21500,
-      image: "/assets/argentina.png?height=300&width=300",
-      description: "Наследие Argentina в современном исполнении с традиционными цветами клуба",
-      stock: 13,
-      category: "heritage",
-      sizes: ["XS", "S", "M", "L", "XL", "XXL"],
-      featured: false,
-    },
-    {
-      id: 22,
-      name: "England Modern",
-      team: "England",
-      color: "White",
-      price: 20500,
-      image: "/assets/england.png?height=300&width=300",
-      description: "Современное джерси England с инновационным дизайном и технологичными материалами",
-      stock: 17,
-      category: "modern",
-      sizes: ["XS", "S", "M", "L", "XL", "XXL"],
-      featured: false,
-    },
-    {
-      id: 23,
-      name: "Russia Classic",
-      team: "Russia",
-      color: "Red",
-      price: 26500,
-      image: "/assets/russia.png?height=300&width=300",
-      description: "Классическое джерси Russia с традиционным баварским дизайном",
-      stock: 16,
-      category: "classic",
-      sizes: ["XS", "S", "M", "L", "XL", "XXL"],
-      featured: false,
-    },
-    {
-      id: 24,
-      name: "Roma Classic",
-      team: "Roma",
-      color: "Brown",
-      price: 28500,
-      image: "/assets/roma.png?height=300&width=300",
-      description: "Классическое джерси Roma с традиционным баварским дизайном",
-      stock: 22,
-      category: "classic",
-      sizes: ["XS", "S", "M", "L", "XL", "XXL"],
-      featured: false,
-    },
-    {
-      id: 25,
-      name: "Brasil Elite",
-      team: "Brasil",
-      color: "Yellow",
-      price: 29500,
-      image: "/assets/brasil.png?height=300&width=300",
-      description: "Элитное джерси Brasil для особых случаев с премиальной отделкой",
-      stock: 16,
-      category: "elite",
-      sizes: ["XS", "S", "M", "L", "XL", "XXL"],
-      featured: false,
-    },
-    {
-      id: 26,
-      name: "France Modern",
-      team: "France",
-      color: "Blue",
-      price: 25500,
-      image: "/assets/france.png?height=300&width=300",
-      description: "Современное джерси France с инновационным дизайном и технологичными материалами",
-      stock: 20,
-      category: "modern",
-      sizes: ["XS", "S", "M", "L", "XL", "XXL"],
-      featured: false,
-    },
-    {
-      id: 27,
-      name: "Real Betis Classic",
-      team: "Real Betis",
-      color: "Green",
-      price: 28500,
-      image: "/assets/betis.png?height=300&width=300",
-      description: "Классическое джерси Real Betis с традиционным баварским дизайном",
-      stock: 14,
-      category: "classic",
-      sizes: ["XS", "S", "M", "L", "XL", "XXL"],
-      featured: false,
-    },
-    {
-      id: 28,
-      name: "Napoli Heritage",
-      team: "Napoli",
-      color: "Blue",
-      price: 23500,
-      image: "/assets/napoli.png?height=300&width=300",
-      description: "Наследие Napoli в современном исполнении с традиционными цветами клуба",
-      stock: 15,
-      category: "heritage",
-      sizes: ["XS", "S", "M", "L", "XL", "XXL"],
-      featured: false,
-    },
-    {
-      id: 29,
-      name: "Sporting Retro",
-      team: "Sporting",
-      color: "Green",
-      price: 24500,
-      image: "/assets/sporting.png?height=300&width=300",
-      description: "Классическое ретро джерси Sporting в современной интерпретации с премиальными материалами",
-      stock: 13,
-      category: "retro",
-      sizes: ["XS", "S", "M", "L", "XL", "XXL"],
-      featured: false,
-    },
-    {
-      id: 30,
-      name: "Porto Retro",
-      team: "Porto",
-      color: "Blue",
-      price: 22500,
-      image: "/assets/porto.png?height=300&width=300",
-      description: "Классическое ретро джерси Porto в современной интерпретации с премиальными материалами",
-      stock: 10,
-      category: "retro",
-      sizes: ["XS", "S", "M", "L", "XL", "XXL"],
-      featured: false,
-    },
-  ]
-
   // Get unique filter options
   const teams = [...new Set(products.map((p) => p.team))].sort()
   const colors = [...new Set(products.map((p) => p.color))].sort()
@@ -431,14 +38,14 @@ export default function Catalog() {
   const endIndex = startIndex + itemsPerPage
   const currentProducts = filteredProducts.slice(startIndex, endIndex)
 
-  // Load products
+  // Load products from dataService
   useEffect(() => {
     const loadProducts = async () => {
       setLoading(true)
       try {
-        // Simulate API call
-        await new Promise((resolve) => setTimeout(resolve, 0))
-        setProducts(mockProducts)
+        // Get products from centralized dataService
+        const productsData = dataService.getProducts()
+        setProducts(productsData)
       } catch (error) {
         console.error("Error loading products:", error)
       } finally {
@@ -447,6 +54,29 @@ export default function Catalog() {
     }
 
     loadProducts()
+
+    // Listen for storage changes to update products when admin makes changes
+    const handleStorageChange = (e) => {
+      if (e.key === "products") {
+        const updatedProducts = dataService.getProducts()
+        setProducts(updatedProducts)
+      }
+    }
+
+    window.addEventListener("storage", handleStorageChange)
+
+    // Also listen for custom events from same tab (when admin updates products)
+    const handleProductUpdate = () => {
+      const updatedProducts = dataService.getProducts()
+      setProducts(updatedProducts)
+    }
+
+    window.addEventListener("productsUpdated", handleProductUpdate)
+
+    return () => {
+      window.removeEventListener("storage", handleStorageChange)
+      window.removeEventListener("productsUpdated", handleProductUpdate)
+    }
   }, [])
 
   // Apply filters
@@ -645,15 +275,17 @@ export default function Catalog() {
               <div className="flex bg-gray-100 rounded-xl p-1">
                 <button
                   onClick={() => setViewMode("grid")}
-                  className={`p-2 rounded-lg transition-colors ${viewMode === "grid" ? "bg-white text-red-600 shadow-sm" : "text-gray-600"
-                    }`}
+                  className={`p-2 rounded-lg transition-colors ${
+                    viewMode === "grid" ? "bg-white text-red-600 shadow-sm" : "text-gray-600"
+                  }`}
                 >
                   <Grid size={20} />
                 </button>
                 <button
                   onClick={() => setViewMode("list")}
-                  className={`p-2 rounded-lg transition-colors ${viewMode === "list" ? "bg-white text-red-600 shadow-sm" : "text-gray-600"
-                    }`}
+                  className={`p-2 rounded-lg transition-colors ${
+                    viewMode === "list" ? "bg-white text-red-600 shadow-sm" : "text-gray-600"
+                  }`}
                 >
                   <List size={20} />
                 </button>
@@ -807,10 +439,11 @@ export default function Catalog() {
                       <button
                         onClick={goToPrevPage}
                         disabled={currentPage === 1}
-                        className={`p-2 rounded-lg border transition-colors ${currentPage === 1
-                          ? "border-gray-200 text-gray-400 cursor-not-allowed"
-                          : "border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-red-600 hover:text-red-600"
-                          }`}
+                        className={`p-2 rounded-lg border transition-colors ${
+                          currentPage === 1
+                            ? "border-gray-200 text-gray-400 cursor-not-allowed"
+                            : "border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-red-600 hover:text-red-600"
+                        }`}
                       >
                         <ChevronLeft size={20} />
                       </button>
@@ -824,10 +457,11 @@ export default function Catalog() {
                             ) : (
                               <button
                                 onClick={() => goToPage(page)}
-                                className={`px-4 py-2 rounded-lg border transition-colors ${currentPage === page
-                                  ? "border-red-600 bg-red-600 text-white"
-                                  : "border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-red-600 hover:text-red-600"
-                                  }`}
+                                className={`px-4 py-2 rounded-lg border transition-colors ${
+                                  currentPage === page
+                                    ? "border-red-600 bg-red-600 text-white"
+                                    : "border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-red-600 hover:text-red-600"
+                                }`}
                               >
                                 {page}
                               </button>
@@ -840,10 +474,11 @@ export default function Catalog() {
                       <button
                         onClick={goToNextPage}
                         disabled={currentPage === totalPages}
-                        className={`p-2 rounded-lg border transition-colors ${currentPage === totalPages
-                          ? "border-gray-200 text-gray-400 cursor-not-allowed"
-                          : "border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-red-600 hover:text-red-600"
-                          }`}
+                        className={`p-2 rounded-lg border transition-colors ${
+                          currentPage === totalPages
+                            ? "border-gray-200 text-gray-400 cursor-not-allowed"
+                            : "border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-red-600 hover:text-red-600"
+                        }`}
                       >
                         <ChevronRight size={20} />
                       </button>
